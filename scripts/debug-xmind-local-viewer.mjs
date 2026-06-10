@@ -6,15 +6,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const debugRoot = path.join(projectRoot, 'debug/xmind-local-viewer');
-const mirrorRoot = path.join(projectRoot, 'vendor/xmind-embed-viewer-remote/mirror');
-const shareEmbedPath = path.join(
-    mirrorRoot,
-    'assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
-);
-const basePath = path.join(
-    mirrorRoot,
-    'assets.xmind.net/www/javascripts/base.38854c1ef6.js'
-);
+const vendorRoot = path.join(projectRoot, 'vendor/xmind-embed-viewer-remote');
+const mirrorRoot = path.join(vendorRoot, 'mirror');
 
 const xmindFile =
     process.env.XMIND_FILE ||
@@ -33,7 +26,12 @@ const contentTypes = new Map([
     ['.xmind', 'application/octet-stream'],
 ]);
 
-function sendText(response, statusCode, text, contentType = 'text/plain; charset=utf-8') {
+function sendText(
+    response,
+    statusCode,
+    text,
+    contentType = 'text/plain; charset=utf-8'
+) {
     response.writeHead(statusCode, {
         'content-type': contentType,
         'cache-control': 'no-store',
@@ -45,7 +43,8 @@ async function sendFile(response, filePath, extraHeaders = {}) {
     const stat = await fs.stat(filePath);
     response.writeHead(200, {
         'content-type':
-            contentTypes.get(path.extname(filePath)) || 'application/octet-stream',
+            contentTypes.get(path.extname(filePath)) ||
+            'application/octet-stream',
         'content-length': stat.size,
         'cache-control': 'no-store',
         ...extraHeaders,
@@ -62,18 +61,12 @@ function resolveInside(root, requestPath) {
     return resolved;
 }
 
-async function sendPatchedJavaScript(response, filePath) {
-    const source = await fs.readFile(filePath, 'utf8');
-    const patched = source.replaceAll(
-        'https://assets.xmind.net/www/',
-        '/remote-assets/assets.xmind.net/www/'
-    );
-    sendText(response, 200, patched, 'text/javascript; charset=utf-8');
-}
-
 const server = createServer(async (request, response) => {
     try {
-        const requestUrl = new URL(request.url || '/', `http://${request.headers.host}`);
+        const requestUrl = new URL(
+            request.url || '/',
+            `http://${request.headers.host}`
+        );
         const pathname = requestUrl.pathname;
 
         if (pathname === '/' || pathname === '/index.html') {
@@ -88,20 +81,23 @@ const server = createServer(async (request, response) => {
             return;
         }
 
-        if (pathname === '/debug-runtime/share-embed.local.js') {
-            await sendPatchedJavaScript(response, shareEmbedPath);
-            return;
-        }
-
-        if (pathname === '/debug-runtime/base.local.js') {
-            await sendPatchedJavaScript(response, basePath);
-            return;
-        }
-
         if (pathname.startsWith('/remote-assets/')) {
             const filePath = resolveInside(
                 mirrorRoot,
                 pathname.slice('/remote-assets'.length)
+            );
+            if (!filePath) {
+                sendText(response, 403, 'Forbidden');
+                return;
+            }
+            await sendFile(response, filePath);
+            return;
+        }
+
+        if (pathname.startsWith('/xmind-embed-viewer-remote/')) {
+            const filePath = resolveInside(
+                vendorRoot,
+                pathname.slice('/xmind-embed-viewer-remote'.length)
             );
             if (!filePath) {
                 sendText(response, 403, 'Forbidden');

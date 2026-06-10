@@ -5,6 +5,7 @@
 ## 目录说明
 
 - `html/embed-viewer.html`：远程 iframe 页面的原始 HTML。
+- `local/embed-viewer.html`：插件运行时使用的本地 iframe 入口，使用相对路径加载本目录镜像资源。
 - `mirror/assets.xmind.net/`：HTML 直接引用的 XMind CDN 资源，按原始 host/path 镜像保存。
 - `meta/direct-assets.txt`：HTML 中直接引用的 XMind CDN 资源 URL 清单。
 - `meta/webpack-chunks.json`：从 `share-embed.2d8410315a.js` 解析出的 Webpack chunk 映射。
@@ -16,7 +17,9 @@
 - MessageChannel 建连逻辑：在主 bundle 中搜索 `setup-channel`
 - 本地文件加载逻辑：在主 bundle 中搜索 `open-file`
 - 控制命令：在主 bundle 中搜索 `fit-map`、`zoom`、`switch-sheet`
+- 本地动态资源路径：主 bundle 读取 `window.__XMIND_ASSET_BASE__`，由 `local/embed-viewer.html` 指向本地镜像目录。
+- 中心主题兼容修复：主 bundle 中的 `xmindNormalizeLocalOpenFile` 会在本地 `open-file` 载入前修正新版 XMind 文件里不可见的中心主题继承色。
 
 ## 注意事项
 
-这是一份调试用远程资源快照，不是项目源码实现，也未接入当前插件构建流程。当前插件仍通过 `xmind-embed-viewer` 加载官方远程 iframe。
+这是一份从远程 iframe 抓取并本地化的资源快照。插件构建会把整个目录复制到 `dist/`，运行时通过本地 iframe 加载，不再创建 `https://www.xmind.app/embed-viewer` 远程 iframe。

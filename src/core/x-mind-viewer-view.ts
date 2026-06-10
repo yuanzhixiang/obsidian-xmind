@@ -1,20 +1,20 @@
 import {
     App,
-    MarkdownView,
-    TextFileView,
-    WorkspaceLeaf,
-    FileView,
-    TFile,
     IconName,
+    FileView,
+    normalizePath,
+    TFile,
+    WorkspaceLeaf,
 } from 'obsidian';
 import { XMindViewerPlugin } from './x-mind-viewer-plugin';
-import { XMindEmbedViewer } from 'xmind-embed-viewer';
+import { LocalXMindEmbedViewer } from './local-xmind-embed-viewer';
 
 const viewType = 'xmind-viewer';
 
 export class XMindViewerView extends FileView {
     plugin: XMindViewerPlugin;
     styles: Partial<CSSStyleDeclaration>;
+    private viewer: LocalXMindEmbedViewer | null = null;
     constructor(leaf: WorkspaceLeaf, app: App, plugin: XMindViewerPlugin) {
         super(leaf);
         this.app = app;
@@ -43,11 +43,27 @@ export class XMindViewerView extends FileView {
 
     async onLoadFile(file: TFile): Promise<void> {
         const binary = await this.app.vault.readBinary(file);
-        new XMindEmbedViewer({
+        this.viewer?.destroy();
+        this.viewer = new LocalXMindEmbedViewer({
             el: this.contentEl,
             file: binary,
-            region: 'global',
+            viewerUrl: this.getLocalViewerUrl(),
             styles: this.styles,
         });
+    }
+
+    async onUnloadFile(): Promise<void> {
+        this.viewer?.destroy();
+        this.viewer = null;
+    }
+
+    private getLocalViewerUrl(): string {
+        const pluginDir =
+            this.plugin.manifest.dir ??
+            `${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
+        const viewerPath = normalizePath(
+            `${pluginDir}/xmind-embed-viewer-remote/local/embed-viewer.html`
+        );
+        return this.app.vault.adapter.getResourcePath(viewerPath);
     }
 }

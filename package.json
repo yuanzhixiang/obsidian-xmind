@@ -1,6 +1,6 @@
 {
     "name": "xmind-viewer",
-    "packageManager": "yarn@4.4.0",
+    "packageManager": "pnpm@10.22.0",
     "author": "Sentiago",
     "license": "Apache-2.0",
     "version": "0.1.0",
@@ -8,12 +8,17 @@
     "description": "Integrate viewing of your XMind files",
     "main": "src/main.ts",
     "scripts": {
-        "dev": "yarn concurrently \"yarn rollup -c rollup.config.mjs -w --environment PRODUCTION:0\" \"yarn start-obsidian\"",
-        "build": "NODE_ENV=production yarn rollup -c rollup.config.mjs --environment PRODUCTION:1",
-        "lint": "yarn eslint src --ext .ts",
+        "dev": "pnpm exec concurrently \"pnpm exec rollup -c rollup.config.mjs -w --environment PRODUCTION:0\" \"pnpm start-obsidian\"",
+        "build": "NODE_ENV=production pnpm exec rollup -c rollup.config.mjs --environment PRODUCTION:1",
+        "lint": "pnpm exec eslint src",
+        "format:vendor": "pnpm exec prettier --write vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/snowbrush.js vendor/xmind-embed-viewer-remote/local/embed-viewer.html debug/xmind-local-viewer/app.js debug/xmind-local-viewer/embed-viewer-local.html scripts/debug-xmind-local-viewer.mjs",
+        "check:local-viewer": "node scripts/check-xmind-local-viewer-fix.mjs",
+        "debug:xmind": "node scripts/debug-xmind-local-viewer.mjs",
+        "package": "pnpm build && node scripts/package-plugin.mjs",
+        "release": "pnpm package",
         "start-obsidian": "node scripts/start-obsidian.mjs",
         "rollup": "rollup",
-        "changelog": "npx conventional-changelog -p conventionalcommits -i check.md -s -r 1 --append\n"
+        "changelog": "pnpm dlx conventional-changelog-cli -p conventionalcommits -i check.md -s -r 1 --append"
     },
     "keywords": [],
     "devDependencies": {
@@ -43,7 +48,5 @@
         "tslib": "^2.6.3",
         "typescript": "5.5.4"
     },
-    "dependencies": {
-        "xmind-embed-viewer": "^1.2.0"
-    }
+    "dependencies": {}
 }

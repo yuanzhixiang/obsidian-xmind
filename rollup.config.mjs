@@ -7,7 +7,9 @@ import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
 import { visualizer } from 'rollup-plugin-visualizer';
 
-const name = 'openapi-renderer';
+const pluginId = 'xmind-viewer';
+const name = pluginId;
+const developmentPluginDir = `test-vault/.obsidian/plugins/${pluginId}`;
 
 const baseConfig = {
     input: 'src/main.ts',
@@ -29,7 +31,7 @@ const baseConfig = {
 const developmentConfig = {
     ...baseConfig,
     output: {
-        dir: 'test-vault/.obsidian/plugins/openapi-renderer',
+        dir: developmentPluginDir,
         sourcemap: false,
         format: 'cjs',
         exports: 'auto',
@@ -41,15 +43,19 @@ const developmentConfig = {
             targets: [
                 {
                     src: './styles.css',
-                    dest: 'test-vault/.obsidian/plugins/openapi-renderer/',
+                    dest: developmentPluginDir,
                 },
                 {
                     src: './manifest.json',
-                    dest: 'test-vault/.obsidian/plugins/openapi-renderer/',
+                    dest: developmentPluginDir,
                 },
                 {
                     src: './.hotreload',
-                    dest: 'test-vault/.obsidian/plugins/openapi-renderer/',
+                    dest: developmentPluginDir,
+                },
+                {
+                    src: './vendor/xmind-embed-viewer-remote',
+                    dest: developmentPluginDir,
                 },
             ],
         }),
@@ -76,6 +82,7 @@ const productionConfig = {
             targets: [
                 { src: './styles.css', dest: 'dist/' },
                 { src: './manifest.json', dest: 'dist/' },
+                { src: './vendor/xmind-embed-viewer-remote', dest: 'dist/' },
             ],
         }),
         terser({
