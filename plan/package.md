@@ -16,7 +16,7 @@
 - `pnpm dev`：启动 Rollup watch 和 Obsidian 测试 vault。
 - `pnpm build`：生成生产 `dist/`。
 - `pnpm lint`：检查 `src/` TypeScript 源码。
-- `pnpm format:vendor`：格式化本地下载的 XMind viewer 核心代码和调试入口。
+- `pnpm format:viewer-assets`：格式化本地 XMind viewer 源码资产和调试入口。
 - `pnpm check:local-viewer`：检查本地 viewer 快照中关键资源路径和中心主题修复是否存在。
 - `pnpm debug:xmind`：启动本地 XMind 调试查看器。
 - `pnpm package`：构建并生成发布 zip。
@@ -26,7 +26,7 @@
 ## 依赖约束
 
 - 项目使用 pnpm，不再维护 yarn 配置或 yarn lock。
-- 插件运行时不依赖 `xmind-embed-viewer` npm 包，iframe 渲染代码来自本地 `vendor/xmind-embed-viewer-remote` 快照，并在构建时内联进 `main.js`。
+- 插件运行时不依赖 `xmind-embed-viewer` npm 包，iframe 渲染代码来自 `src/xmind-viewer-assets/` 中的本地源码资产，并在构建时内联进 `main.js`。
 - 本地 viewer 的通用三方 JS 通过 `dependencies` 安装并打包：`jquery@3.2.1`、`js-cookie@2.2.0`、`popper.js@1.12.9`、`bootstrap@4.0.0-beta.2`、`vue@2.7.14`。
 - `share-embed`、动态 chunk、`snowbrush.js`、图片、动画和 XMind 样式仍来自本地快照，因为这些属于 XMind 渲染资产或本地修复代码，不能替换为官方 `xmind-embed-viewer` wrapper。
 - Obsidian 安装产物必须只依赖 `main.js`、`manifest.json`、`styles.css` 三个标准文件。

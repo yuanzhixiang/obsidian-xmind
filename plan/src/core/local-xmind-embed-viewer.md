@@ -29,9 +29,9 @@
 
 - iframe 不可用、channel 超时或命令超时时，Promise 会 reject，并通过 `onError` 交给视图层。
 - `open-file` 失败不得静默白屏，必须进入错误态。
-- adapter 不解析 `.xmind`，文件兼容修复位于本地下载的 `share-embed` bundle 内。
+- adapter 不解析 `.xmind`，文件兼容修复位于 `src/xmind-viewer-assets/` 中的修复版 `share-embed` bundle 内。
 
 ## 组合关系
 
 - adapter 只负责 Obsidian 外壳与 iframe 通讯。
-- XMind 文件解析、渲染、资源加载和中心主题兼容修复由打包进 `main.js` 的本地 viewer 代码完成；`vendor/xmind-embed-viewer-remote` 是源码快照和调试来源，不是安装时依赖。
+- XMind 文件解析、渲染、资源加载和中心主题兼容修复由打包进 `main.js` 的本地 viewer 代码完成；`src/xmind-viewer-assets/` 是源码资产来源，不是安装时依赖。

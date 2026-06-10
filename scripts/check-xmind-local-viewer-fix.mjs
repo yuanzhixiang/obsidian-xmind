@@ -6,11 +6,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const shareEmbedPath = path.join(
     projectRoot,
-    'vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
+    'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
 );
 const localEntryPath = path.join(
     projectRoot,
-    'vendor/xmind-embed-viewer-remote/local/embed-viewer.html'
+    'src/xmind-viewer-assets/local/embed-viewer.html'
 );
 const viewerAssetsPath = path.join(
     projectRoot,
@@ -41,7 +41,7 @@ const requiredRuntimeDependencies = {
     vue: '2.7.14',
 };
 
-const removedVendorScripts = [
+const removedLocalThirdPartyScripts = [
     ['jquery', '-3-c9f5aeeca3.2.1.min.js'].join(''),
     ['polyfill', '-45b9836beb.min.js'].join(''),
     ['js-cookie', '-a978ac7394.js'].join(''),
@@ -49,6 +49,8 @@ const removedVendorScripts = [
     ['bootstrap', '-26779614c4.min.js'].join(''),
     ['vue@2', '-b0cd066675.7.14.min.js'].join(''),
 ];
+const removedMirrorDirectory = ['xmind', 'embed-viewer-remote'].join('-');
+const removedImportPrefix = ['..', '..', 'vendor'].join('/') + '/';
 
 const checks = [
     {
@@ -76,6 +78,13 @@ const checks = [
             viewerAssets.includes('73350.03dd088904.js?raw'),
     },
     {
+        name: 'viewer assets come from first-party source asset directory',
+        pass:
+            viewerAssets.includes('../xmind-viewer-assets/') &&
+            !viewerAssets.includes(removedImportPrefix) &&
+            !viewerAssets.includes(removedMirrorDirectory),
+    },
+    {
         name: 'third-party viewer runtime dependencies come from package.json',
         pass: Object.entries(requiredRuntimeDependencies).every(
             ([dependency, version]) => pkg.dependencies?.[dependency] === version
@@ -91,8 +100,8 @@ const checks = [
             viewerRuntime.includes('vue/dist/vue.min.js'),
     },
     {
-        name: 'viewer assets no longer import removed vendor third-party scripts',
-        pass: removedVendorScripts.every(
+        name: 'viewer assets no longer import removed local third-party scripts',
+        pass: removedLocalThirdPartyScripts.every(
             (scriptName) =>
                 !viewerAssets.includes(scriptName) &&
                 !localEntry.includes(scriptName)

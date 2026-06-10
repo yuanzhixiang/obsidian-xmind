@@ -8,15 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const require = createRequire(import.meta.url);
 const debugRoot = path.join(projectRoot, 'debug/xmind-local-viewer');
-const vendorRoot = path.join(projectRoot, 'vendor/xmind-embed-viewer-remote');
-const mirrorRoot = path.join(vendorRoot, 'mirror');
+const viewerAssetRoot = path.join(projectRoot, 'src/xmind-viewer-assets');
 const runtimeEntryPath = path.join(
     projectRoot,
     'src/core/xmind-viewer-runtime.cjs'
-);
-const shareEmbedPath = path.join(
-    mirrorRoot,
-    'assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
 );
 let runtimeBundle = null;
 
@@ -126,28 +121,10 @@ const server = createServer(async (request, response) => {
             return;
         }
 
-        if (pathname === '/debug-runtime/share-embed.local.js') {
-            await sendFile(response, shareEmbedPath);
-            return;
-        }
-
-        if (pathname.startsWith('/remote-assets/')) {
+        if (pathname.startsWith('/xmind-viewer-assets/')) {
             const filePath = resolveInside(
-                mirrorRoot,
-                pathname.slice('/remote-assets'.length)
-            );
-            if (!filePath) {
-                sendText(response, 403, 'Forbidden');
-                return;
-            }
-            await sendFile(response, filePath);
-            return;
-        }
-
-        if (pathname.startsWith('/xmind-embed-viewer-remote/')) {
-            const filePath = resolveInside(
-                vendorRoot,
-                pathname.slice('/xmind-embed-viewer-remote'.length)
+                viewerAssetRoot,
+                pathname.slice('/xmind-viewer-assets'.length)
             );
             if (!filePath) {
                 sendText(response, 403, 'Forbidden');

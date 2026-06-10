@@ -1,22 +1,22 @@
-# XMind Embed Viewer 本地快照
+# XMind Viewer 源码资产
 
 ## 能力定位
 
-该目录保存从 `https://www.xmind.app/embed-viewer` 下载并本地化的 iframe 页面、XMind 渲染 bundle、样式、动态 chunk 和静态资源。正式插件构建会从本目录读取 XMind 专属资源并内联进 `main.js`，通用三方 JS 由 `package.json` 依赖提供，运行时不依赖安装目录中存在本目录。
+该目录保存插件内置 XMind viewer 必需的本地化资产，包括 iframe 入口、修复版 XMind 渲染 bundle、样式、动态 chunk、图片和动画。它是项目源码的一部分，不再作为下载镜像目录维护。正式插件构建会从本目录读取 XMind 专属资源并内联进 `main.js`，通用三方 JS 由 `package.json` 依赖提供。
 
 ## 目录结构
 
 - `local/embed-viewer.html` 是调试入口，使用相对路径加载本地镜像资源，并通过 `/debug-runtime/xmind-viewer-runtime.js` 加载 package 依赖打出的三方 runtime。
 - `mirror/assets.xmind.net/` 镜像 XMind CDN 资源。
-- `meta/` 保存资源清单、Webpack chunk 映射和下载记录。
 
 ## 关键行为
 
 - `local/embed-viewer.html` 设置 `window.__XMIND_ASSET_BASE__`，让动态 chunk 从本地镜像目录加载。
-- `local/embed-viewer.html` 不再直接加载 jQuery、js-cookie、Popper、Bootstrap、Vue 或旧 polyfill 的本地 vendor 文件。
+- `local/embed-viewer.html` 不再直接加载 jQuery、js-cookie、Popper、Bootstrap、Vue 或旧 polyfill 的本地静态文件。
 - `src/core/xmind-viewer-assets.ts` 在正式插件中设置 `window.__XMIND_ASSET_MAP__`，让动态 chunk 从内联 Blob URL 加载。
 - `share-embed.2d8410315a.js` 保留原 MessageChannel 协议：`setup-channel`、`open-file`、`fit-map`、`zoom`、`switch-sheet`。
 - 本地 `open-file` 分支会先运行 `xmindNormalizeLocalOpenFile`，再把 `.xmind` 二进制交给原渲染器。
+- 未被调试入口或正式打包引用的旧站点脚本、下载 meta 和历史截图不保留在仓库中。
 
 ## 中心主题兼容修复
 
