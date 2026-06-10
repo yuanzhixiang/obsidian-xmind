@@ -58,7 +58,8 @@ jobs:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   tag="${GITHUB_REF_NAME}"
-                  zip_file="release/xmind-viewer-${tag}.zip"
+                  plugin_id="$(node -p "require('./manifest.json').id")"
+                  zip_file="release/${plugin_id}-${tag}.zip"
 
                   gh release create "$tag" \
                     --title "$tag" \

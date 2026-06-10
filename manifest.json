@@ -1,10 +1,10 @@
 {
-    "id": "xmind-viewer",
-    "name": "XMind Viewer",
-    "version": "0.1.5",
+    "id": "xmind-maps",
+    "name": "XMind Maps",
+    "version": "0.1.7",
     "minAppVersion": "1.6.5",
     "author": "yuanzhixiang",
     "authorUrl": "https://github.com/yuanzhixiang",
-    "description": "View local XMind files inside Obsidian",
+    "description": "View local XMind files.",
     "isDesktopOnly": false
 }

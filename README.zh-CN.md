@@ -1,6 +1,6 @@
-# XMind Viewer
+# XMind Maps
 
-XMind Viewer 是一个 Obsidian 插件，用于在 vault 内直接打开本地 `.xmind` 文件。插件会为 `.xmind` 扩展名注册只读文件视图，并使用内置的本地 XMind embed viewer 渲染脑图。
+XMind Maps 是一个 Obsidian 插件，用于在 vault 内直接打开本地 `.xmind` 文件。插件会为 `.xmind` 扩展名注册只读文件视图，并使用内置的本地 XMind embed viewer 渲染脑图。
 
 [English](./README.md)
 

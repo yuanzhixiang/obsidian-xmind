@@ -2,7 +2,7 @@
 
 ## 功能定位
 
-`README.zh-CN.md` 是中文说明文档，内容与英文 README 对齐，面向中文 Obsidian 用户和开发者。
+`README.zh-CN.md` 是中文说明文档，内容与英文 README 对齐，面向中文 Obsidian 用户和开发者，保持 `XMind Maps` 的极简项目介绍。
 
 ## 内容口径
 

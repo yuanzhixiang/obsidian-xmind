@@ -1,1 +1,1 @@
-export const XMIND_VIEW_TYPE = 'xmind-viewer';
+export const XMIND_VIEW_TYPE = 'xmind-maps';
