@@ -2,7 +2,7 @@
 
 ## 功能定位
 
-`README.md` 是仓库默认展示的英文说明文档，面向 GitHub、Obsidian 插件用户和开发者，保持极简项目介绍。
+`README.md` 是仓库默认展示的英文说明文档，面向 GitHub、Obsidian 插件用户和开发者，保持 `XMind Maps` 的极简项目介绍。
 
 ## 内容口径
 
@@ -13,5 +13,5 @@
 
 ## 维护规则
 
-- README 中不得维护安装、限制、使用、开发和发布章节；作者和描述必须与 `package.json`、`manifest.json` 保持一致。
+- README 中不得维护安装、限制、使用、开发和发布章节；项目名称、作者和描述必须与 `package.json`、`manifest.json` 保持一致。
 - 新增用户可见能力时，必须同步更新英文和中文 README。

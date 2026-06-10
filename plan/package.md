@@ -7,7 +7,8 @@
 ## 元数据口径
 
 - `author` 使用 `yuanzhixiang`，与 `manifest.json` 的插件展示作者保持一致。
-- `description` 使用英文短句，描述插件真实能力：在 Obsidian 内查看本地 XMind 文件。
+- `name` 使用 `xmind-maps`，与官方提交使用的 `manifest.json` 插件 id 对齐。
+- `description` 使用英文短句 `View local XMind files.`，与 `manifest.json` 保持一致。
 - 版本号必须与 `manifest.json` 保持一致，由 `pnpm deploy:prod` 自动递增 patch 版本。
 
 ## 命令口径
@@ -36,5 +37,6 @@
 
 - `README.md` 是英文主 README。
 - `README.zh-CN.md` 是中文 README。
+- 两份 README 使用 `XMind Maps` 作为项目展示名称。
 - 两份 README 的功能说明使用简洁单句：在 Obsidian vault 中直接打开 `.xmind` 文件，以只读模式查看脑图，支持缩放、适配画布和查看控件。
 - 两份 README 不维护安装、限制、使用、开发和发布章节。

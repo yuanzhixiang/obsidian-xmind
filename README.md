@@ -1,6 +1,6 @@
-# XMind Viewer
+# XMind Maps
 
-XMind Viewer is an Obsidian plugin for opening local `.xmind` files directly inside your vault. It registers a read-only file view for the `.xmind` extension and renders the map with a bundled local XMind embed viewer.
+XMind Maps is an Obsidian plugin for opening local `.xmind` files directly inside your vault. It registers a read-only file view for the `.xmind` extension and renders the map with a bundled local XMind embed viewer.
 
 [简体中文](./README.zh-CN.md)
 

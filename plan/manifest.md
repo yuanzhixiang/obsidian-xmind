@@ -6,12 +6,12 @@
 
 ## 元数据口径
 
-- `id` 保持 `xmind-viewer`。
-- `name` 保持 `XMind Viewer`。
+- `id` 保持 `xmind-maps`。
+- `name` 保持 `XMind Maps`。
 - `version` 必须与 `package.json` 保持一致。
 - `author` 使用 `yuanzhixiang`。
 - `authorUrl` 使用 `https://github.com/yuanzhixiang`。
-- `description` 使用英文短句，描述插件真实能力：在 Obsidian 内查看本地 XMind 文件。
+- `description` 使用英文短句 `View local XMind files.`，避免在官方提交元数据中使用 `Obsidian`。
 
 ## 维护规则
 

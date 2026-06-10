@@ -2,8 +2,7 @@ import { App, IconName, FileView, TFile, WorkspaceLeaf } from 'obsidian';
 import { XMindViewerPlugin } from './x-mind-viewer-plugin';
 import { LocalXMindEmbedViewer } from './local-xmind-embed-viewer';
 import { getInlineXMindViewerUrl } from './xmind-viewer-assets';
-
-const viewType = 'xmind-viewer';
+import { XMIND_VIEW_TYPE } from '../typing/types';
 
 export class XMindViewerView extends FileView {
     plugin: XMindViewerPlugin;
@@ -21,7 +20,7 @@ export class XMindViewerView extends FileView {
     }
 
     getViewType(): string {
-        return viewType;
+        return XMIND_VIEW_TYPE;
     }
 
     getIcon(): IconName {

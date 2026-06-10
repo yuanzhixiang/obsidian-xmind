@@ -9,7 +9,7 @@ import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
 import { visualizer } from 'rollup-plugin-visualizer';
 
-const pluginId = 'xmind-viewer';
+const pluginId = 'xmind-maps';
 const name = pluginId;
 const developmentPluginDir = `test-vault/.obsidian/plugins/${pluginId}`;
 
