@@ -9,6 +9,7 @@ import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { assembleXMindChunkParts } from './scripts/xmind-webpack-chunk-parts.mjs';
 
 const pluginId = 'xmind-maps';
 const name = pluginId;
@@ -64,7 +65,8 @@ function inlineAssetPlugin() {
             if (
                 !source.endsWith('?raw') &&
                 !source.endsWith('?dataurl') &&
-                !source.endsWith('?bundle')
+                !source.endsWith('?bundle') &&
+                !source.endsWith('?xmindchunk')
             ) {
                 return null;
             }
@@ -86,6 +88,10 @@ function inlineAssetPlugin() {
 
             if (query === 'bundle') {
                 return `export default ${jsStringLiteral(createPackageRuntimeBundle(assetPath))};`;
+            }
+
+            if (query === 'xmindchunk') {
+                return `export default ${jsStringLiteral(await assembleXMindChunkParts(assetPath))};`;
             }
 
             return null;

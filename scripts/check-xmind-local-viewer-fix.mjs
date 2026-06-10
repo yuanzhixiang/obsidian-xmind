@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assembleXMindChunkParts } from './xmind-webpack-chunk-parts.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
@@ -8,9 +9,13 @@ const shareEmbedPath = path.join(
     projectRoot,
     'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
 );
-const snowbrushChunkPath = path.join(
+const snowbrushChunkFilePath = path.join(
     projectRoot,
     'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.js'
+);
+const snowbrushChunkPartsDir = path.join(
+    projectRoot,
+    'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.parts'
 );
 const localEntryPath = path.join(
     projectRoot,
@@ -27,23 +32,33 @@ const viewerRuntimePath = path.join(
 const viewerViewPath = path.join(projectRoot, 'src/core/x-mind-viewer-view.ts');
 const packagePath = path.join(projectRoot, 'package.json');
 
+async function exists(filePath) {
+    try {
+        await fs.access(filePath);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 const [
     shareEmbed,
-    snowbrushChunk,
     localEntry,
     viewerAssets,
     viewerRuntime,
     viewerView,
     pkg,
+    snowbrushChunkFileExists,
 ] = await Promise.all([
-        fs.readFile(shareEmbedPath, 'utf8'),
-        fs.readFile(snowbrushChunkPath, 'utf8'),
-        fs.readFile(localEntryPath, 'utf8'),
-        fs.readFile(viewerAssetsPath, 'utf8'),
-        fs.readFile(viewerRuntimePath, 'utf8'),
-        fs.readFile(viewerViewPath, 'utf8'),
-        fs.readFile(packagePath, 'utf8').then(JSON.parse),
-    ]);
+    fs.readFile(shareEmbedPath, 'utf8'),
+    fs.readFile(localEntryPath, 'utf8'),
+    fs.readFile(viewerAssetsPath, 'utf8'),
+    fs.readFile(viewerRuntimePath, 'utf8'),
+    fs.readFile(viewerViewPath, 'utf8'),
+    fs.readFile(packagePath, 'utf8').then(JSON.parse),
+    exists(snowbrushChunkFilePath),
+]);
+const snowbrushChunk = await assembleXMindChunkParts(snowbrushChunkPartsDir);
 
 const requiredRuntimeDependencies = {
     bootstrap: '4.0.0-beta.2',
@@ -87,7 +102,11 @@ const checks = [
             viewerAssets.includes('getInlineXMindViewerUrl') &&
             viewerAssets.includes('xmind-viewer-runtime.cjs?bundle') &&
             viewerAssets.includes('share-embed.2d8410315a.js?raw') &&
-            viewerAssets.includes('73350.03dd088904.js?raw'),
+            viewerAssets.includes('73350.03dd088904.parts?xmindchunk'),
+    },
+    {
+        name: 'monolithic Snowbrush chunk source is split into parts',
+        pass: !snowbrushChunkFileExists,
     },
     {
         name: 'viewer assets come from first-party source asset directory',
@@ -99,7 +118,8 @@ const checks = [
     {
         name: 'third-party viewer runtime dependencies come from package.json',
         pass: Object.entries(requiredRuntimeDependencies).every(
-            ([dependency, version]) => pkg.dependencies?.[dependency] === version
+            ([dependency, version]) =>
+                pkg.dependencies?.[dependency] === version
         ),
     },
     {

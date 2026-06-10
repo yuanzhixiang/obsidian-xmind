@@ -12,3 +12,8 @@ declare module '*?bundle' {
     const content: string;
     export default content;
 }
+
+declare module '*?xmindchunk' {
+    const content: string;
+    export default content;
+}

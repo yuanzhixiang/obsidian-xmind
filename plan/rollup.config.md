@@ -10,15 +10,16 @@ Rollup 负责把 Obsidian 插件源码打包成 CommonJS 插件入口，并把 `
 - 生产构建输出到 `dist/`。
 - `obsidian` 和 `electron` 保持 external，不打入插件 bundle。
 - TypeScript、Node resolve、CommonJS、JSON 插件用于处理源码依赖。
-- `inline-assets` 插件处理 `?raw`、`?dataurl` 和 `?bundle` 导入，把 viewer 资源转换为字符串模块。
+- `inline-assets` 插件处理 `?raw`、`?dataurl`、`?bundle` 和 `?xmindchunk` 导入，把 viewer 资源转换为字符串模块。
 - `?bundle` 用于按 `src/core/xmind-viewer-runtime.cjs` 清单读取 package UMD/dist 脚本，拼成 iframe 可直接加载的 runtime 脚本。
+- `?xmindchunk` 仅用于 `73350.03dd088904.parts/`，构建时把源码层拆分的 webpack chunk parts 拼回一个完整 JSONP chunk。
 - 构建开始前必须清理输出目录，避免已删除的旧远程快照文件残留进 `dist/` 或开发插件目录。
 
 ## 本地资源交付
 
 - 开发和生产构建只复制 `styles.css`、`manifest.json`，开发构建额外复制 `.hotreload`。
 - `src/xmind-viewer-assets/` 只作为构建输入，不进入安装产物，避免 Obsidian 安装后依赖额外目录导致白屏。
-- 如果新增 viewer 资源、动态 chunk 或 runtime 依赖，必须在 `src/core/xmind-viewer-assets.ts` 或 `src/core/xmind-viewer-runtime.cjs` 中显式维护。
+- 如果新增 viewer 资源、动态 chunk 或 runtime 依赖，必须在 `src/core/xmind-viewer-assets.ts`、`src/core/xmind-viewer-runtime.cjs` 或 chunk parts manifest 中显式维护。
 
 ## 发布约束
 

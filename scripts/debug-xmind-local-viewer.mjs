@@ -3,12 +3,19 @@ import { createReadStream, promises as fs } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assembleXMindChunkParts } from './xmind-webpack-chunk-parts.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const require = createRequire(import.meta.url);
 const debugRoot = path.join(projectRoot, 'debug/xmind-local-viewer');
 const viewerAssetRoot = path.join(projectRoot, 'src/xmind-viewer-assets');
+const snowbrushChunkRequestPath =
+    '/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.js';
+const snowbrushChunkPartsDir = path.join(
+    viewerAssetRoot,
+    'mirror/assets.xmind.net/www/javascripts/73350.03dd088904.parts'
+);
 const runtimeEntryPath = path.join(
     projectRoot,
     'src/core/xmind-viewer-runtime.cjs'
@@ -122,6 +129,16 @@ const server = createServer(async (request, response) => {
                 response,
                 200,
                 getRuntimeBundle(),
+                'text/javascript; charset=utf-8'
+            );
+            return;
+        }
+
+        if (pathname === snowbrushChunkRequestPath) {
+            sendText(
+                response,
+                200,
+                await assembleXMindChunkParts(snowbrushChunkPartsDir),
                 'text/javascript; charset=utf-8'
             );
             return;

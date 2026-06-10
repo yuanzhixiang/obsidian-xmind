@@ -7,7 +7,7 @@ import viewerRuntimeJs from './xmind-viewer-runtime.cjs?bundle';
 import snowbrushJs from '../xmind-viewer-assets/mirror/assets.xmind.net/www/assets/vendor/js/snowbrush.js?raw';
 import shareEmbedJs from '../xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js?raw';
 
-import snowbrushChunkJs from '../xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.js?raw';
+import snowbrushChunkJs from '../xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.parts?xmindchunk';
 import enCommonChunkJs from '../xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/en.common.368d04a5fc.js?raw';
 import enShareChunkJs from '../xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/en.share.8c70790f45.js?raw';
 import enFormChunkJs from '../xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/en.form.44061827e8.js?raw';
