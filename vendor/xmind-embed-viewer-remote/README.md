@@ -4,7 +4,6 @@
 
 ## 目录说明
 
-- `html/embed-viewer.html`：远程 iframe 页面的原始 HTML。
 - `local/embed-viewer.html`：插件运行时使用的本地 iframe 入口，使用相对路径加载本目录镜像资源。
 - `mirror/assets.xmind.net/`：HTML 直接引用的 XMind CDN 资源，按原始 host/path 镜像保存。
 - `meta/direct-assets.txt`：HTML 中直接引用的 XMind CDN 资源 URL 清单。
@@ -23,3 +22,5 @@
 ## 注意事项
 
 这是一份从远程 iframe 抓取并本地化的资源快照。插件构建会把整个目录复制到 `dist/`，运行时通过本地 iframe 加载，不再创建 `https://www.xmind.app/embed-viewer` 远程 iframe。
+
+原始远程 HTML 和未被本地入口使用的 XMind 站点基础脚本已经删除；它们包含第三方公开应用标识，且不参与插件运行时渲染。

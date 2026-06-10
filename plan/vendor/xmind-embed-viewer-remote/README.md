@@ -6,7 +6,6 @@
 
 ## 目录结构
 
-- `html/embed-viewer.html` 保存原始远程 HTML，仅用于追溯。
 - `local/embed-viewer.html` 是插件运行时入口，使用相对路径加载本地镜像资源。
 - `mirror/assets.xmind.net/` 镜像 XMind CDN 资源。
 - `meta/` 保存资源清单、Webpack chunk 映射和下载记录。
@@ -28,3 +27,4 @@ XMind 26 / `layoutEngineVersion: 5` 文件可能把中心主题文字色写成 `
 - 本目录是第三方渲染快照，不重写 XMind 渲染引擎。
 - 修复目标是本地 `open-file` 的中心主题不可见问题，不保证完全复刻最新版 XMind App 的所有布局与主题细节。
 - 更新远程快照时必须重新验证 `__XMIND_ASSET_BASE__` 和中心主题兼容修复是否仍然存在。
+- 原始远程 HTML 与未被本地入口加载的 XMind 站点基础脚本不保留在仓库中，避免带入无关第三方公开应用标识。
