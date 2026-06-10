@@ -3,6 +3,7 @@ interface LocalXMindEmbedViewerOptions {
     file: ArrayBuffer;
     viewerUrl: string;
     styles?: Partial<CSSStyleDeclaration>;
+    onError?: (error: unknown) => void;
 }
 
 type ViewerCommand = 'open-file' | 'fit-map' | 'zoom' | 'switch-sheet';
@@ -21,13 +22,20 @@ export class LocalXMindEmbedViewer {
             width: '100%',
             height: '100%',
             border: 'none',
+            display: 'block',
+            flex: '1 1 auto',
+            minHeight: '0',
             ...options.styles,
         });
 
         this.ready = this.setupChannel();
         options.el.replaceChildren(this.iframe);
-        this.iframe.src = `${options.viewerUrl}?local=${Date.now()}`;
-        void this.openFile(options.file).catch(() => undefined);
+        this.iframe.src = options.viewerUrl.startsWith('blob:')
+            ? options.viewerUrl
+            : `${options.viewerUrl}?local=${Date.now()}`;
+        void this.openFile(options.file).catch((error) => {
+            options.onError?.(error);
+        });
     }
 
     destroy(): void {
@@ -56,33 +64,51 @@ export class LocalXMindEmbedViewer {
     private setupChannel(): Promise<void> {
         return new Promise((resolve, reject) => {
             const viewer = this;
-            const channel = new MessageChannel();
             let timeout = 0;
+            let retryInterval = 0;
+            const attempts: Array<{
+                port: MessagePort;
+                handleReady: (event: MessageEvent) => void;
+            }> = [];
 
-            function cleanup(): void {
+            function cleanup(readyPort?: MessagePort): void {
                 window.clearTimeout(timeout);
+                window.clearInterval(retryInterval);
                 viewer.iframe.removeEventListener('load', handleLoad);
-                channel.port1.removeEventListener('message', handleReady);
-            }
+                for (const attempt of attempts) {
+                    attempt.port.removeEventListener(
+                        'message',
+                        attempt.handleReady
+                    );
 
-            function handleReady(event: MessageEvent): void {
-                const [message] = (event.data || []) as [string];
-                if (message !== 'channel-ready') {
-                    return;
+                    if (attempt.port === readyPort) {
+                        continue;
+                    }
+
+                    attempt.port.close();
                 }
-
-                cleanup();
-                viewer.port = channel.port1;
-                resolve();
             }
 
-            function handleLoad(): void {
+            function postSetupMessage(): void {
                 if (viewer.destroyed || !viewer.iframe.contentWindow) {
                     cleanup();
                     reject(new Error('XMind local viewer iframe unavailable'));
                     return;
                 }
 
+                const channel = new MessageChannel();
+                const handleReady = (event: MessageEvent): void => {
+                    const [message] = (event.data || []) as [string];
+                    if (message !== 'channel-ready') {
+                        return;
+                    }
+
+                    cleanup(channel.port1);
+                    viewer.port = channel.port1;
+                    resolve();
+                };
+
+                attempts.push({ port: channel.port1, handleReady });
                 channel.port1.start();
                 channel.port1.addEventListener('message', handleReady);
                 viewer.iframe.contentWindow.postMessage(
@@ -90,6 +116,11 @@ export class LocalXMindEmbedViewer {
                     '*',
                     [channel.port2]
                 );
+            }
+
+            function handleLoad(): void {
+                postSetupMessage();
+                retryInterval = window.setInterval(postSetupMessage, 250);
             }
 
             timeout = window.setTimeout((): void => {

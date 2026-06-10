@@ -12,10 +12,17 @@ const localEntryPath = path.join(
     projectRoot,
     'vendor/xmind-embed-viewer-remote/local/embed-viewer.html'
 );
+const viewerAssetsPath = path.join(
+    projectRoot,
+    'src/core/xmind-viewer-assets.ts'
+);
+const viewerViewPath = path.join(projectRoot, 'src/core/x-mind-viewer-view.ts');
 
-const [shareEmbed, localEntry] = await Promise.all([
+const [shareEmbed, localEntry, viewerAssets, viewerView] = await Promise.all([
     fs.readFile(shareEmbedPath, 'utf8'),
     fs.readFile(localEntryPath, 'utf8'),
+    fs.readFile(viewerAssetsPath, 'utf8'),
+    fs.readFile(viewerViewPath, 'utf8'),
 ]);
 
 const checks = [
@@ -26,6 +33,23 @@ const checks = [
     {
         name: 'local entry defines local asset base',
         pass: localEntry.includes('window.__XMIND_ASSET_BASE__'),
+    },
+    {
+        name: 'share bundle can load chunks from inline asset map',
+        pass: shareEmbed.includes('window.__XMIND_ASSET_MAP__'),
+    },
+    {
+        name: 'runtime embeds XMind viewer assets into main bundle',
+        pass:
+            viewerAssets.includes('getInlineXMindViewerUrl') &&
+            viewerAssets.includes('share-embed.2d8410315a.js?raw') &&
+            viewerAssets.includes('73350.03dd088904.js?raw'),
+    },
+    {
+        name: 'Obsidian view no longer depends on plugin resource directory',
+        pass:
+            viewerView.includes('getInlineXMindViewerUrl()') &&
+            !viewerView.includes('getResourcePath('),
     },
     {
         name: 'open-file branch normalizes local XMind file',

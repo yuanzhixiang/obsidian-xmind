@@ -1,6 +1,8 @@
 import commonjs from '@rollup/plugin-commonjs';
+import fs from 'node:fs';
 import json from '@rollup/plugin-json';
 import nodeResolve from '@rollup/plugin-node-resolve';
+import path from 'node:path';
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
@@ -11,10 +13,66 @@ const pluginId = 'xmind-viewer';
 const name = pluginId;
 const developmentPluginDir = `test-vault/.obsidian/plugins/${pluginId}`;
 
+function mimeTypeFor(filePath) {
+    const extension = path.extname(filePath).toLowerCase();
+    switch (extension) {
+        case '.css':
+            return 'text/css';
+        case '.gif':
+            return 'image/gif';
+        case '.js':
+            return 'text/javascript';
+        case '.mp4':
+            return 'video/mp4';
+        case '.svg':
+            return 'image/svg+xml';
+        default:
+            return 'application/octet-stream';
+    }
+}
+
+function inlineAssetPlugin() {
+    return {
+        name: 'inline-assets',
+        resolveId(source, importer) {
+            if (!source.endsWith('?raw') && !source.endsWith('?dataurl')) {
+                return null;
+            }
+
+            const [assetPath, query] = source.split('?');
+            const importerDir = importer ? path.dirname(importer) : process.cwd();
+            return `${path.resolve(importerDir, assetPath)}?${query}`;
+        },
+        load(id) {
+            const [assetPath, query] = id.split('?');
+            if (query === 'raw') {
+                return `export default ${JSON.stringify(fs.readFileSync(assetPath, 'utf8'))};`;
+            }
+
+            if (query === 'dataurl') {
+                const encoded = fs.readFileSync(assetPath).toString('base64');
+                return `export default ${JSON.stringify(`data:${mimeTypeFor(assetPath)};base64,${encoded}`)};`;
+            }
+
+            return null;
+        },
+    };
+}
+
+function cleanOutputPlugin(outputDir) {
+    return {
+        name: 'clean-output',
+        buildStart() {
+            fs.rmSync(outputDir, { recursive: true, force: true });
+        },
+    };
+}
+
 const baseConfig = {
     input: 'src/main.ts',
     external: ['obsidian', 'electron'],
     plugins: [
+        inlineAssetPlugin(),
         json(),
         nodeResolve({
             preferBuiltins: true,
@@ -38,6 +96,7 @@ const developmentConfig = {
         name,
     },
     plugins: [
+        cleanOutputPlugin(developmentPluginDir),
         ...baseConfig.plugins,
         copy({
             targets: [
@@ -51,10 +110,6 @@ const developmentConfig = {
                 },
                 {
                     src: './.hotreload',
-                    dest: developmentPluginDir,
-                },
-                {
-                    src: './vendor/xmind-embed-viewer-remote',
                     dest: developmentPluginDir,
                 },
             ],
@@ -73,6 +128,7 @@ const productionConfig = {
         exports: 'auto',
     },
     plugins: [
+        cleanOutputPlugin('dist'),
         ...baseConfig.plugins,
         replace({
             'process.env.NODE_ENV': JSON.stringify('production'),
@@ -82,7 +138,6 @@ const productionConfig = {
             targets: [
                 { src: './styles.css', dest: 'dist/' },
                 { src: './manifest.json', dest: 'dist/' },
-                { src: './vendor/xmind-embed-viewer-remote', dest: 'dist/' },
             ],
         }),
         terser({

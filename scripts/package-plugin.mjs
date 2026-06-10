@@ -16,8 +16,6 @@ const requiredEntries = [
     'main.js',
     'manifest.json',
     'styles.css',
-    'xmind-embed-viewer-remote/local/embed-viewer.html',
-    'xmind-embed-viewer-remote/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js',
 ];
 
 for (const entry of requiredEntries) {
@@ -35,7 +33,6 @@ const result = spawnSync(
         'main.js',
         'manifest.json',
         'styles.css',
-        'xmind-embed-viewer-remote',
     ],
     {
         cwd: distDir,

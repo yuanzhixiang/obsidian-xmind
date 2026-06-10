@@ -18,7 +18,8 @@
 ## 依赖约束
 
 - 项目使用 pnpm，不再维护 yarn 配置或 yarn lock。
-- 插件运行时不依赖 `xmind-embed-viewer` npm 包，iframe 渲染代码来自本地 `vendor/xmind-embed-viewer-remote` 快照。
+- 插件运行时不依赖 `xmind-embed-viewer` npm 包，iframe 渲染代码来自本地 `vendor/xmind-embed-viewer-remote` 快照，并在构建时内联进 `main.js`。
+- Obsidian 安装产物必须只依赖 `main.js`、`manifest.json`、`styles.css` 三个标准文件。
 
 ## 发布约束
 

@@ -39877,7 +39877,11 @@ https://github.com/nodeca/pako/blob/master/LICENSE
                             n = e[t] = [r, o];
                         });
                         r.push((n[2] = o));
-                        var a = i.p + i.u(t),
+                        var a =
+                                (window &&
+                                    window.__XMIND_ASSET_MAP__ &&
+                                    window.__XMIND_ASSET_MAP__[i.u(t)]) ||
+                                i.p + i.u(t),
                             c = new Error();
                         i.l(
                             a,

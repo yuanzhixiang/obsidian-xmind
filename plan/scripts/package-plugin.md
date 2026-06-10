@@ -15,11 +15,12 @@
 - `main.js`
 - `manifest.json`
 - `styles.css`
-- `xmind-embed-viewer-remote/`
 
 ## 校验规则
 
-脚本会在压缩前检查核心文件是否存在，特别是本地 iframe 入口和修复后的 `share-embed` bundle。缺少任一文件时应直接失败，避免发布不完整插件。
+脚本会在压缩前检查 Obsidian 标准三件套是否存在。缺少任一文件时应直接失败，避免发布不完整插件。
+
+XMind viewer 资源已经内联进 `main.js`，发布 zip 不再包含 `xmind-embed-viewer-remote/` 目录。
 
 ## 边界和限制
 

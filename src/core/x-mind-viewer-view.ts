@@ -1,13 +1,7 @@
-import {
-    App,
-    IconName,
-    FileView,
-    normalizePath,
-    TFile,
-    WorkspaceLeaf,
-} from 'obsidian';
+import { App, IconName, FileView, TFile, WorkspaceLeaf } from 'obsidian';
 import { XMindViewerPlugin } from './x-mind-viewer-plugin';
 import { LocalXMindEmbedViewer } from './local-xmind-embed-viewer';
+import { getInlineXMindViewerUrl } from './xmind-viewer-assets';
 
 const viewType = 'xmind-viewer';
 
@@ -44,11 +38,13 @@ export class XMindViewerView extends FileView {
     async onLoadFile(file: TFile): Promise<void> {
         const binary = await this.app.vault.readBinary(file);
         this.viewer?.destroy();
+        this.prepareContentEl();
         this.viewer = new LocalXMindEmbedViewer({
             el: this.contentEl,
             file: binary,
-            viewerUrl: this.getLocalViewerUrl(),
+            viewerUrl: getInlineXMindViewerUrl(),
             styles: this.styles,
+            onError: (error): void => this.showError(error),
         });
     }
 
@@ -57,13 +53,27 @@ export class XMindViewerView extends FileView {
         this.viewer = null;
     }
 
-    private getLocalViewerUrl(): string {
-        const pluginDir =
-            this.plugin.manifest.dir ??
-            `${this.app.vault.configDir}/plugins/${this.plugin.manifest.id}`;
-        const viewerPath = normalizePath(
-            `${pluginDir}/xmind-embed-viewer-remote/local/embed-viewer.html`
-        );
-        return this.app.vault.adapter.getResourcePath(viewerPath);
+    private prepareContentEl(): void {
+        this.contentEl.empty();
+        this.contentEl.addClass('xmind-viewer-content');
+        Object.assign(this.contentEl.style, {
+            width: '100%',
+            height: '100%',
+            minHeight: '0',
+            display: 'flex',
+            overflow: 'hidden',
+        });
+    }
+
+    private showError(error: unknown): void {
+        const message =
+            error instanceof Error
+                ? error.message
+                : 'XMind viewer failed to load.';
+        this.contentEl.empty();
+        this.contentEl.createDiv({
+            cls: 'xmind-viewer-error',
+            text: `XMind 渲染失败：${message}`,
+        });
     }
 }
