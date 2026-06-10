@@ -2,7 +2,13 @@
 
 ## 功能定位
 
-`package.json` 定义项目的 pnpm 包管理、开发命令、构建命令、发布命令和依赖清单。
+`package.json` 定义项目的 pnpm 包管理、开发命令、构建命令、发布命令、作者信息、描述文案和依赖清单。
+
+## 元数据口径
+
+- `author` 使用 `yuanzhixiang`，与 `manifest.json` 的插件展示作者保持一致。
+- `description` 使用英文短句，描述插件真实能力：在 Obsidian 内查看本地 XMind 文件。
+- 版本号必须与 `manifest.json` 保持一致，由 `pnpm deploy:prod` 自动递增 patch 版本。
 
 ## 命令口径
 
@@ -25,3 +31,10 @@
 ## 发布约束
 
 发布前至少运行 `pnpm deploy:prod`。该命令会覆盖本地 viewer 回归检查、源码 lint、patch 版本号递增、生产构建、zip 打包、版本提交和 tag 推送。zip 产物写入 `release/`，不提交到源码仓库。GitHub Release 由远端 tag push 触发的 workflow 创建。
+
+## README 维护口径
+
+- `README.md` 是英文主 README。
+- `README.zh-CN.md` 是中文 README。
+- 两份 README 的功能说明使用简洁单句：在 Obsidian vault 中直接打开 `.xmind` 文件，以只读模式查看脑图，支持缩放、适配画布和查看控件。
+- 两份 README 不维护安装、限制、使用、开发和发布章节。

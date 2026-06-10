@@ -1,11 +1,11 @@
 {
     "name": "xmind-viewer",
     "packageManager": "pnpm@10.22.0",
-    "author": "Sentiago",
+    "author": "yuanzhixiang",
     "license": "Apache-2.0",
     "version": "0.1.5",
     "type": "module",
-    "description": "Integrate viewing of your XMind files",
+    "description": "View local XMind files inside Obsidian",
     "main": "src/main.ts",
     "scripts": {
         "dev": "pnpm exec concurrently \"pnpm exec rollup -c rollup.config.mjs -w --environment PRODUCTION:0\" \"pnpm start-obsidian\"",
