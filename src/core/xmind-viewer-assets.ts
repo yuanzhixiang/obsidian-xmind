@@ -3,12 +3,7 @@ import webUiKitIconsCss from '../../vendor/xmind-embed-viewer-remote/mirror/asse
 import indexCss from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/styles/index-141fccded4.css?raw';
 import shareEmbedCss from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/styles/pages/share-embed-c84652b8d1.css?raw';
 
-import jqueryJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/jquery-3-c9f5aeeca3.2.1.min.js?raw';
-import polyfillJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/polyfill-45b9836beb.min.js?raw';
-import jsCookieJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/js-cookie-a978ac7394.js?raw';
-import popperJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/popper-135fa9e662.min.js?raw';
-import bootstrapJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/bootstrap-26779614c4.min.js?raw';
-import vueJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/vue@2-b0cd066675.7.14.min.js?raw';
+import viewerRuntimeJs from './xmind-viewer-runtime.cjs?bundle';
 import snowbrushJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/assets/vendor/js/snowbrush.js?raw';
 import shareEmbedJs from '../../vendor/xmind-embed-viewer-remote/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js?raw';
 
@@ -52,12 +47,7 @@ function getAssetUrls(): ViewerAssetUrls {
             createTextAssetUrl(shareEmbedCss, 'text/css'),
         ],
         scripts: [
-            createTextAssetUrl(jqueryJs, 'text/javascript'),
-            createTextAssetUrl(polyfillJs, 'text/javascript'),
-            createTextAssetUrl(jsCookieJs, 'text/javascript'),
-            createTextAssetUrl(popperJs, 'text/javascript'),
-            createTextAssetUrl(bootstrapJs, 'text/javascript'),
-            createTextAssetUrl(vueJs, 'text/javascript'),
+            createTextAssetUrl(viewerRuntimeJs, 'text/javascript'),
             createTextAssetUrl(shareEmbedJs, 'text/javascript'),
         ],
         manifests: {

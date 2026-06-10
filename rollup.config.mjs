@@ -1,6 +1,7 @@
 import commonjs from '@rollup/plugin-commonjs';
 import fs from 'node:fs';
 import json from '@rollup/plugin-json';
+import { createRequire } from 'node:module';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import path from 'node:path';
 import replace from '@rollup/plugin-replace';
@@ -12,6 +13,7 @@ import { visualizer } from 'rollup-plugin-visualizer';
 const pluginId = 'xmind-viewer';
 const name = pluginId;
 const developmentPluginDir = `test-vault/.obsidian/plugins/${pluginId}`;
+const require = createRequire(import.meta.url);
 
 function mimeTypeFor(filePath) {
     const extension = path.extname(filePath).toLowerCase();
@@ -31,11 +33,39 @@ function mimeTypeFor(filePath) {
     }
 }
 
+function jsStringLiteral(value) {
+    return JSON.stringify(value)
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029');
+}
+
+function createPackageRuntimeBundle(assetPath) {
+    const scriptSpecifiers = require(assetPath);
+    const scripts = scriptSpecifiers.map((specifier) =>
+        fs.readFileSync(require.resolve(specifier), 'utf8')
+    );
+
+    return `${scripts.join('\n;\n')}\n;\n(function () {
+    window.$ = window.jQuery || window.$;
+    window.jQuery = window.jQuery || window.$;
+    window.__xmindViewerRuntimeReady = Boolean(
+        window.jQuery &&
+        window.Cookies &&
+        window.Popper &&
+        window.Vue
+    );
+})();`;
+}
+
 function inlineAssetPlugin() {
     return {
         name: 'inline-assets',
         resolveId(source, importer) {
-            if (!source.endsWith('?raw') && !source.endsWith('?dataurl')) {
+            if (
+                !source.endsWith('?raw') &&
+                !source.endsWith('?dataurl') &&
+                !source.endsWith('?bundle')
+            ) {
                 return null;
             }
 
@@ -43,15 +73,19 @@ function inlineAssetPlugin() {
             const importerDir = importer ? path.dirname(importer) : process.cwd();
             return `${path.resolve(importerDir, assetPath)}?${query}`;
         },
-        load(id) {
+        async load(id) {
             const [assetPath, query] = id.split('?');
             if (query === 'raw') {
-                return `export default ${JSON.stringify(fs.readFileSync(assetPath, 'utf8'))};`;
+                return `export default ${jsStringLiteral(fs.readFileSync(assetPath, 'utf8'))};`;
             }
 
             if (query === 'dataurl') {
                 const encoded = fs.readFileSync(assetPath).toString('base64');
-                return `export default ${JSON.stringify(`data:${mimeTypeFor(assetPath)};base64,${encoded}`)};`;
+                return `export default ${jsStringLiteral(`data:${mimeTypeFor(assetPath)};base64,${encoded}`)};`;
+            }
+
+            if (query === 'bundle') {
+                return `export default ${jsStringLiteral(createPackageRuntimeBundle(assetPath))};`;
             }
 
             return null;

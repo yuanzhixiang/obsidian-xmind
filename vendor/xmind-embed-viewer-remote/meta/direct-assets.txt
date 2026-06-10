@@ -1,14 +1,8 @@
 https://assets.xmind.net/www/assets/vendor/css/bootstrap-customized-f152a280ef.min.css
 https://assets.xmind.net/web-ui-kit/icons/1.22.2/style.css
 https://assets.xmind.net/www/styles/index-141fccded4.css
-https://assets.xmind.net/www/assets/vendor/js/jquery-3-c9f5aeeca3.2.1.min.js
 https://assets.xmind.net/www/styles/pages/share-embed-c84652b8d1.css
-https://assets.xmind.net/www/assets/vendor/js/polyfill-45b9836beb.min.js
-https://assets.xmind.net/www/assets/vendor/js/js-cookie-a978ac7394.js
 https://assets.xmind.net/www/javascripts/cookies-prompt.34a61ca716.js
-https://assets.xmind.net/www/assets/vendor/js/popper-135fa9e662.min.js
-https://assets.xmind.net/www/assets/vendor/js/bootstrap-26779614c4.min.js
-https://assets.xmind.net/www/assets/vendor/js/vue@2-b0cd066675.7.14.min.js
 https://assets.xmind.net/www/javascripts/vue-plugins.08b2eb1245.js
 https://assets.xmind.net/www/javascripts/share-embed.2d8410315a.js
 https://assets.xmind.net/www/javascripts/header-footer-handler.6a8116345c.js

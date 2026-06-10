@@ -1,13 +1,24 @@
 import { createServer } from 'node:http';
 import { createReadStream, promises as fs } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
+const require = createRequire(import.meta.url);
 const debugRoot = path.join(projectRoot, 'debug/xmind-local-viewer');
 const vendorRoot = path.join(projectRoot, 'vendor/xmind-embed-viewer-remote');
 const mirrorRoot = path.join(vendorRoot, 'mirror');
+const runtimeEntryPath = path.join(
+    projectRoot,
+    'src/core/xmind-viewer-runtime.cjs'
+);
+const shareEmbedPath = path.join(
+    mirrorRoot,
+    'assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
+);
+let runtimeBundle = null;
 
 const xmindFile =
     process.env.XMIND_FILE ||
@@ -61,6 +72,30 @@ function resolveInside(root, requestPath) {
     return resolved;
 }
 
+function getRuntimeBundle() {
+    if (runtimeBundle) {
+        return runtimeBundle;
+    }
+
+    const scriptSpecifiers = require(runtimeEntryPath);
+    const scripts = scriptSpecifiers.map((specifier) =>
+        require('node:fs').readFileSync(require.resolve(specifier), 'utf8')
+    );
+
+    runtimeBundle = `${scripts.join('\n;\n')}\n;\n(function () {
+    window.$ = window.jQuery || window.$;
+    window.jQuery = window.jQuery || window.$;
+    window.__xmindViewerRuntimeReady = Boolean(
+        window.jQuery &&
+        window.Cookies &&
+        window.Popper &&
+        window.Vue
+    );
+})();`;
+
+    return runtimeBundle;
+}
+
 const server = createServer(async (request, response) => {
     try {
         const requestUrl = new URL(
@@ -78,6 +113,21 @@ const server = createServer(async (request, response) => {
             await sendFile(response, xmindFile, {
                 'content-disposition': 'inline; filename="debug.xmind"',
             });
+            return;
+        }
+
+        if (pathname === '/debug-runtime/xmind-viewer-runtime.js') {
+            sendText(
+                response,
+                200,
+                getRuntimeBundle(),
+                'text/javascript; charset=utf-8'
+            );
+            return;
+        }
+
+        if (pathname === '/debug-runtime/share-embed.local.js') {
+            await sendFile(response, shareEmbedPath);
             return;
         }
 

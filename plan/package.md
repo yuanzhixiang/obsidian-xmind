@@ -26,6 +26,8 @@
 
 - 项目使用 pnpm，不再维护 yarn 配置或 yarn lock。
 - 插件运行时不依赖 `xmind-embed-viewer` npm 包，iframe 渲染代码来自本地 `vendor/xmind-embed-viewer-remote` 快照，并在构建时内联进 `main.js`。
+- 本地 viewer 的通用三方 JS 通过 `dependencies` 安装并打包：`jquery@3.2.1`、`js-cookie@2.2.0`、`popper.js@1.12.9`、`bootstrap@4.0.0-beta.2`、`vue@2.7.14`。
+- `share-embed`、动态 chunk、`snowbrush.js`、图片、动画和 XMind 样式仍来自本地快照，因为这些属于 XMind 渲染资产或本地修复代码，不能替换为官方 `xmind-embed-viewer` wrapper。
 - Obsidian 安装产物必须只依赖 `main.js`、`manifest.json`、`styles.css` 三个标准文件。
 
 ## 发布约束
