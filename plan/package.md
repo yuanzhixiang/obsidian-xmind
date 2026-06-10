@@ -14,7 +14,7 @@
 - `pnpm debug:xmind`：启动本地 XMind 调试查看器。
 - `pnpm package`：构建并生成发布 zip。
 - `pnpm release`：当前等同于 `pnpm package`。
-- `pnpm deploy:prod`：生产发布命令，依次运行本地 viewer 回归检查、源码 lint、patch 版本号递增和发布 zip 打包。
+- `pnpm deploy:prod`：生产发布命令，要求工作区干净，然后依次运行本地 viewer 回归检查、源码 lint、patch 版本号递增、发布 zip 打包、提交版本变更、创建同名 tag，并推送分支与 tag。
 
 ## 依赖约束
 
@@ -24,4 +24,4 @@
 
 ## 发布约束
 
-发布前至少运行 `pnpm deploy:prod`。该命令会覆盖本地 viewer 回归检查、源码 lint、patch 版本号递增、生产构建和 zip 打包。zip 产物写入 `release/`，不提交到源码仓库。
+发布前至少运行 `pnpm deploy:prod`。该命令会覆盖本地 viewer 回归检查、源码 lint、patch 版本号递增、生产构建、zip 打包、版本提交和 tag 推送。zip 产物写入 `release/`，不提交到源码仓库。GitHub Release 由远端 tag push 触发的 workflow 创建。
