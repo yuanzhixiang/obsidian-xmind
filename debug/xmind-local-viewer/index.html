@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XMind 本地调试查看器</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="toolbar" aria-label="调试工具栏">
+      <section class="identity" aria-label="当前文件">
+        <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+        <div>
+          <h1>XMind 调试查看器</h1>
+          <p id="fileLabel">/Users/yuanzhixiang/Desktop/202606101441 搞到钱再说.xmind</p>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="查看器控制">
+        <button id="reloadButton" type="button">重新加载</button>
+        <button id="fitButton" type="button">适配画布</button>
+        <label class="field">
+          <span>缩放</span>
+          <input id="zoomInput" type="number" min="50" max="500" step="10" value="100">
+        </label>
+        <button id="zoomButton" type="button">应用</button>
+        <label class="field field-wide">
+          <span>Sheet</span>
+          <select id="sheetSelect">
+            <option value="">等待加载</option>
+          </select>
+        </label>
+      </section>
+    </header>
+
+    <section class="workspace">
+      <div class="viewer-frame-wrap">
+        <iframe id="viewerFrame" title="XMind 渲染 iframe"></iframe>
+      </div>
+      <aside class="log-panel" aria-label="事件日志">
+        <div class="log-heading">
+          <h2>事件</h2>
+          <button id="clearLogButton" type="button">清空</button>
+        </div>
+        <ol id="eventLog"></ol>
+      </aside>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
