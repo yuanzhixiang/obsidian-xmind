@@ -8,6 +8,10 @@ const shareEmbedPath = path.join(
     projectRoot,
     'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
 );
+const snowbrushChunkPath = path.join(
+    projectRoot,
+    'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.js'
+);
 const localEntryPath = path.join(
     projectRoot,
     'src/xmind-viewer-assets/local/embed-viewer.html'
@@ -23,9 +27,17 @@ const viewerRuntimePath = path.join(
 const viewerViewPath = path.join(projectRoot, 'src/core/x-mind-viewer-view.ts');
 const packagePath = path.join(projectRoot, 'package.json');
 
-const [shareEmbed, localEntry, viewerAssets, viewerRuntime, viewerView, pkg] =
-    await Promise.all([
+const [
+    shareEmbed,
+    snowbrushChunk,
+    localEntry,
+    viewerAssets,
+    viewerRuntime,
+    viewerView,
+    pkg,
+] = await Promise.all([
         fs.readFile(shareEmbedPath, 'utf8'),
+        fs.readFile(snowbrushChunkPath, 'utf8'),
         fs.readFile(localEntryPath, 'utf8'),
         fs.readFile(viewerAssetsPath, 'utf8'),
         fs.readFile(viewerRuntimePath, 'utf8'),
@@ -106,6 +118,15 @@ const checks = [
                 !viewerAssets.includes(scriptName) &&
                 !localEntry.includes(scriptName)
         ),
+    },
+    {
+        name: 'Snowbrush chunk delegates jQuery to package runtime',
+        pass:
+            !snowbrushChunk.includes('jQuery JavaScript Library v3.7.0') &&
+            snowbrushChunk.includes('t.jQuery || t.$') &&
+            snowbrushChunk.includes(
+                'XMind viewer runtime requires package-provided jQuery.'
+            ),
     },
     {
         name: 'Obsidian view no longer depends on plugin resource directory',

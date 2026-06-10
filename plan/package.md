@@ -16,7 +16,7 @@
 - `pnpm dev`：启动 Rollup watch 和 Obsidian 测试 vault。
 - `pnpm build`：生成生产 `dist/`。
 - `pnpm lint`：检查 `src/` TypeScript 源码。
-- `pnpm format:viewer-assets`：格式化本地 XMind viewer 源码资产和调试入口。
+- `pnpm format:viewer-assets`：格式化本地 XMind viewer 的全部 `javascripts/*.js`、Snowbrush、iframe 入口和调试入口。
 - `pnpm check:local-viewer`：检查本地 viewer 快照中关键资源路径和中心主题修复是否存在。
 - `pnpm debug:xmind`：启动本地 XMind 调试查看器。
 - `pnpm package`：构建并生成发布 zip。

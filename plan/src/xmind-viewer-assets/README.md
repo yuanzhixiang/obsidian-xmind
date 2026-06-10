@@ -18,6 +18,12 @@
 - 本地 `open-file` 分支会先运行 `xmindNormalizeLocalOpenFile`，再把 `.xmind` 二进制交给原渲染器。
 - 未被调试入口或正式打包引用的旧站点脚本、下载 meta 和历史截图不保留在仓库中。
 
+## 三方依赖口径
+
+- `javascripts/*.js` 必须保持 Prettier 格式化，方便审查本地修复和三方依赖边界。
+- `73350` Snowbrush chunk 中原先内置的完整 jQuery 已删除，运行时必须通过 package runtime 暴露的 `window.jQuery` 或 `window.$` 获取 jQuery。
+- `share-embed` 和 `73350` 中仍保留的 JSZip、pako、core-js、lodash、axios、Backbone 和图形路径处理代码属于 XMind webpack 内部模块链。没有源码级模块映射前，不从 bundle 中拆出，避免破坏 XMind 文件解析、zip 读写、主题处理和图形渲染。
+
 ## 中心主题兼容修复
 
 XMind 26 / `layoutEngineVersion: 5` 文件可能把中心主题文字色写成 `fo:color: inherited`，同时中心主题是无填充样式。旧 embed renderer 会把该继承色解析成不可见色，导致中心主题看起来没有渲染。

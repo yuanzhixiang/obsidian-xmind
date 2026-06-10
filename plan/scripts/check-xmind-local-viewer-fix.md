@@ -12,6 +12,7 @@
 - 运行时必须通过 `getInlineXMindViewerUrl()` 使用打包在 `main.js` 中的本地 viewer 资源。
 - XMind viewer 专属资产必须来自 `src/xmind-viewer-assets/`，不得重新引入旧下载镜像目录。
 - 通用三方 JS 必须通过 `package.json` 依赖和 `xmind-viewer-runtime.cjs?bundle` 注入，不得重新引用已删除的本地三方 JS 文件。
+- `73350` Snowbrush chunk 不得重新内置完整 jQuery，必须委托给 package runtime 提供的 `window.jQuery` 或 `window.$`。
 - Obsidian 视图不得继续依赖 `app.vault.adapter.getResourcePath()` 指向额外安装目录。
 - 本地 `open-file` 分支必须调用 `xmindNormalizeLocalOpenFile`。
 - 中心主题修复必须同时覆盖 `theme.centralTopic.properties` 和 `theme.topicThemeMap.centralTopic.properties`。

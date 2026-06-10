@@ -11,7 +11,7 @@
         "dev": "pnpm exec concurrently \"pnpm exec rollup -c rollup.config.mjs -w --environment PRODUCTION:0\" \"pnpm start-obsidian\"",
         "build": "NODE_ENV=production pnpm exec rollup -c rollup.config.mjs --environment PRODUCTION:1",
         "lint": "pnpm exec eslint src",
-        "format:viewer-assets": "pnpm exec prettier --write src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js src/xmind-viewer-assets/mirror/assets.xmind.net/www/assets/vendor/js/snowbrush.js src/xmind-viewer-assets/local/embed-viewer.html debug/xmind-local-viewer/app.js src/core/xmind-viewer-runtime.cjs scripts/debug-xmind-local-viewer.mjs",
+        "format:viewer-assets": "pnpm exec prettier --write \"src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/*.js\" src/xmind-viewer-assets/mirror/assets.xmind.net/www/assets/vendor/js/snowbrush.js src/xmind-viewer-assets/local/embed-viewer.html debug/xmind-local-viewer/app.js src/core/xmind-viewer-runtime.cjs scripts/debug-xmind-local-viewer.mjs",
         "check:local-viewer": "node scripts/check-xmind-local-viewer-fix.mjs",
         "debug:xmind": "node scripts/debug-xmind-local-viewer.mjs",
         "package": "pnpm build && node scripts/package-plugin.mjs",

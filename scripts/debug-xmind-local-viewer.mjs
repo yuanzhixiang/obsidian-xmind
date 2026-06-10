@@ -104,6 +104,12 @@ const server = createServer(async (request, response) => {
             return;
         }
 
+        if (pathname === '/favicon.ico') {
+            response.writeHead(204, { 'cache-control': 'no-store' });
+            response.end();
+            return;
+        }
+
         if (pathname === '/file.xmind') {
             await sendFile(response, xmindFile, {
                 'content-disposition': 'inline; filename="debug.xmind"',
