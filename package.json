@@ -3,7 +3,7 @@
     "packageManager": "pnpm@10.22.0",
     "author": "yuanzhixiang",
     "license": "Apache-2.0",
-    "version": "0.1.5",
+    "version": "0.1.6",
     "type": "module",
     "description": "View local XMind files inside Obsidian",
     "main": "src/main.ts",
