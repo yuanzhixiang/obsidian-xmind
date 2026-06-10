@@ -22,7 +22,7 @@
 - 创建 `chore: release {version}` 提交。
 - 创建 `{version}` tag。
 - 推送当前分支到 `origin`。
-- 推送 `{version}` tag 到 `origin`，触发 GitHub Release workflow。
+- 使用完整 `refs/tags/{version}` ref 推送 tag 到 `origin`，触发 GitHub Release workflow。
 
 ## 错误和边界
 

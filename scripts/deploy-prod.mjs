@@ -96,6 +96,6 @@ run('git', ['add', 'package.json', 'manifest.json']);
 run('git', ['commit', '-m', `chore: release ${version}`]);
 run('git', ['tag', version]);
 run('git', ['push', 'origin', 'HEAD']);
-run('git', ['push', 'origin', version]);
+run('git', ['push', 'origin', `refs/tags/${version}`]);
 
 console.log(`Deployed ${version}`);
