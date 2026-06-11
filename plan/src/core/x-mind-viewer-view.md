@@ -22,6 +22,7 @@
     - `Open as markdown`：在当前 leaf 中以 `markdown` view type 打开当前 `.xmind` 文件，便于用户临时查看原始文本内容。
     - `Copy path`：优先使用 Obsidian 运行时支持的 submenu，包含 `as Obsidian URL`、`from vault folder`、`from system root`；如果运行时不支持 submenu，则顶层 `Copy path` 复制 vault 相对路径。
 - XMind pane menu 打开时，`Command+W`/`Ctrl+W` 只关闭菜单并阻止默认标签页关闭行为。
+- `onPaneMenu()` 的 `source` 参数按 Obsidian 运行时传入字符串处理；不在本地声明 `literal | string` 冗余 union，避免官方源码扫描产生覆盖告警。
 
 ## 加载、空态和错误态
 

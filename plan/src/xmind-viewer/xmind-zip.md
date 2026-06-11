@@ -15,6 +15,8 @@
 - `readZipTextFile()` 在条目不存在时返回 `null`，由调用方决定是否报错或降级。
 - `replaceZipTextFile()` 只修改内存副本，不写回 Obsidian vault 原文件。
 - 重新生成 zip 的目的是传给本地源码 viewer 做兼容渲染，不承诺保留原始 zip 的全部压缩元数据。
+- `xmind-zip.ts` 在文件内部维护 TS 5.5 兼容的 fflate 同步 API 类型面，隔离 `fflate@0.8.3` 较新泛型 typed-array 声明导致的 strict lint `error typed` 噪音。
+- 传给 `zipSync()` 前会把可读条目映射收窄成 `Record<string, Uint8Array>`，不得把可能为 `undefined` 的条目继续传给压缩库。
 
 ## 约束
 

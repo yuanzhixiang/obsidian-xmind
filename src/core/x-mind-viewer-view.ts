@@ -66,10 +66,7 @@ export class XMindViewerView extends FileView {
         return 'No file open';
     }
 
-    onPaneMenu(
-        menu: Menu,
-        source: 'more-options' | 'tab-header' | string
-    ): void {
+    onPaneMenu(menu: Menu, source: string): void {
         menu.setUseNativeMenu(false);
         super.onPaneMenu(menu, source);
         this.bindCloseMenuHotkey(menu);

@@ -4,7 +4,7 @@ export default [
     {
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- ESLint flat config needs the parser runtime object imported from this CommonJS-compatible package.
             parser: tsParser,
             parserOptions: {
                 ecmaVersion: 2022,
@@ -90,6 +90,9 @@ export default [
         languageOptions: {
             ecmaVersion: 2022,
             sourceType: 'module',
+        },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
         },
     },
 ];
