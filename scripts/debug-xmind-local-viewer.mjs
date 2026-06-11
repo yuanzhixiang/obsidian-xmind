@@ -25,8 +25,13 @@ const fileLoaderEntryPath = path.join(
     projectRoot,
     'src/xmind-viewer/file-loader.ts'
 );
+const nativeViewerAppEntryPath = path.join(
+    projectRoot,
+    'src/xmind-viewer/native-viewer-app.ts'
+);
 let runtimeBundle = null;
 let fileLoaderBundle = null;
+let nativeViewerAppBundle = null;
 
 const xmindFile =
     process.env.XMIND_FILE ||
@@ -349,6 +354,83 @@ ${code}
     }
 }
 
+async function getNativeViewerAppBundle() {
+    if (nativeViewerAppBundle) {
+        return nativeViewerAppBundle;
+    }
+
+    const bundle = await createRollupBundle({
+        input: nativeViewerAppEntryPath,
+        plugins: [
+            nodeResolve({
+                browser: true,
+                preferBuiltins: false,
+                extensions: ['.js', '.jsx', '.ts', '.tsx'],
+            }),
+            commonjs({
+                include: 'node_modules/**',
+            }),
+            typescript({
+                tsconfig: './tsconfig.json',
+                declaration: false,
+                declarationMap: false,
+                sourceMap: false,
+            }),
+        ],
+        treeshake: false,
+    });
+
+    try {
+        const { output } = await bundle.generate({
+            format: 'iife',
+            name: 'XMindNativeViewerApp',
+            sourcemap: false,
+        });
+        nativeViewerAppBundle = output
+            .filter((chunkOrAsset) => chunkOrAsset.type === 'chunk')
+            .map((chunk) => chunk.code)
+            .join('\n');
+        return nativeViewerAppBundle;
+    } finally {
+        await bundle.close();
+    }
+}
+
+function createNativeViewerHtml() {
+    return `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>XMind Native Viewer Debug</title>
+</head>
+<body>
+<script>
+window.addEventListener('error', function (event) {
+    window.parent.postMessage({
+        type: 'xmind-debug-error',
+        message: event.message,
+        source: event.filename,
+        line: event.lineno,
+        column: event.colno
+    }, window.location.origin);
+});
+window.addEventListener('unhandledrejection', function (event) {
+    window.parent.postMessage({
+        type: 'xmind-debug-error',
+        message: event.reason && event.reason.message ? event.reason.message : String(event.reason),
+        source: 'unhandledrejection',
+        line: 0,
+        column: 0
+    }, window.location.origin);
+});
+</script>
+<script>${createDisableMutationObserverSchedulerScript()}</script>
+<script src="/debug-runtime/xmind-native-viewer.js"></script>
+</body>
+</html>`;
+}
+
 function sendText(
     response,
     statusCode,
@@ -650,6 +732,26 @@ const server = createServer(async (request, response) => {
                 response,
                 200,
                 await getFileLoaderBundle(),
+                'text/javascript; charset=utf-8'
+            );
+            return;
+        }
+
+        if (pathname === '/debug-runtime/xmind-native-viewer.html') {
+            sendText(
+                response,
+                200,
+                createNativeViewerHtml(),
+                'text/html; charset=utf-8'
+            );
+            return;
+        }
+
+        if (pathname === '/debug-runtime/xmind-native-viewer.js') {
+            sendText(
+                response,
+                200,
+                await getNativeViewerAppBundle(),
                 'text/javascript; charset=utf-8'
             );
             return;

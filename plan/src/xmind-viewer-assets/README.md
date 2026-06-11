@@ -2,24 +2,22 @@
 
 ## 能力定位
 
-该目录保存插件内置 XMind viewer 必需的本地化兼容资产，包括调试 iframe 入口、XMind 渲染 bundle、样式、动态 chunk、图片和动画。它是项目源码的一部分，不再作为下载镜像目录维护。正式插件构建会通过 `src/xmind-viewer/asset-loader.ts` 从本目录读取 XMind 专属资源并内联进 `main.js`，通用三方 JS 由 `package.json` 依赖提供。
+该目录保存历史本地化 XMind viewer 的兼容资产，包括旧调试 iframe 入口、XMind 渲染 bundle、样式、动态 chunk、图片和动画。当前正式插件主路径已经切换到 `src/xmind-viewer/native-viewer-app.ts` 源码版 viewer，不再从本目录读取 `share-embed`、`73350` 或 `snowbrush.js` 作为运行时依赖。本目录暂时作为参考资料、旧行为对照和后续迁移素材保留。
 
 ## 目录结构
 
-- `local/embed-viewer.html` 是调试入口，使用相对路径加载本地镜像资源，并通过 `/debug-runtime/xmind-viewer-runtime.js` 加载 package 依赖打出的三方 runtime。
+- `local/embed-viewer.html` 是旧调试入口快照，当前 `pnpm debug:xmind` 不再加载它。
 - `mirror/assets.xmind.net/` 镜像 XMind CDN 资源。
-- `mirror/assets.xmind.net/www/javascripts/73350.03dd088904.parts/` 是 Snowbrush webpack chunk 的源码层拆分目录，调试和构建时会拼回 `javascripts/73350.03dd088904.js`。
+- `mirror/assets.xmind.net/www/javascripts/73350.03dd088904.parts/` 是 Snowbrush webpack chunk 的源码层拆分目录，当前只用于兼容检查和后续迁移参考。
 
 ## 关键行为
 
-- `local/embed-viewer.html` 设置 `window.__XMIND_ASSET_BASE__`，让动态 chunk 从本地镜像目录加载。
-- `local/embed-viewer.html` 与正式源码生成的 iframe HTML 都会通过 `Object.defineProperty` 禁用 iframe 内 `globalThis`、`window`、`self`、`global` 上的 `MutationObserver` / `WebKitMutationObserver`，让旧 Snowbrush/Promise/Vue 调度代码走 Promise、MessageChannel 或定时器 fallback，避免本地调试和 Obsidian 中出现 `observe()` 跨上下文报错。
-- `local/embed-viewer.html` 不再直接加载 jQuery、js-cookie、Popper、Bootstrap、Vue 或旧 polyfill 的本地静态文件。
-- `src/xmind-viewer/embed-viewer.ts` 在正式插件中设置 `window.__XMIND_ASSET_MAP__`，让动态 chunk 从内联 Blob URL 加载。
+- 正式源码 viewer 不依赖 `window.__XMIND_ASSET_BASE__`、`window.__XMIND_ASSET_MAP__`、`window.manifests` 或旧动态 chunk loader。
+- `local/embed-viewer.html` 中的旧全局变量和调度保护只作为历史参考，不代表当前主路径行为。
 - `styles/index-141fccded4.css` 不保留远程 `@font-face` 或旧官网背景图 URL；字体回退到系统字体，避免本地 viewer 向 `assets.xmind.net` 发起请求。
-- `73350.03dd088904.parts/` 不改变运行时加载协议；`share-embed` 仍只看到一个 `javascripts/73350.03dd088904.js` chunk。
-- `share-embed.2d8410315a.js` 保留原 MessageChannel 协议：`setup-channel`、`open-file`、`fit-map`、`zoom`、`switch-sheet`。
-- 正式 Obsidian 视图和调试父页面都会先运行 `src/xmind-viewer/file-loader.ts` 的 `loadLocalXMindFile()`。本地 `share-embed` 的 `open-file` 分支只接收已经预处理好的 ArrayBuffer，不再保留中心主题颜色兼容逻辑。
+- `73350.03dd088904.parts/` 不改变旧 webpack JSONP 语义；如果后续需要对照旧渲染器，可以通过维护脚本拼接检查。
+- `share-embed.2d8410315a.js` 保留原 MessageChannel 协议快照，但正式主路径已经由 `src/xmind-viewer/native-viewer-app.ts` 实现协议。
+- 正式 Obsidian 视图和调试父页面都会先运行 `src/xmind-viewer/file-loader.ts` 的 `loadLocalXMindFile()`。源码 iframe app 会再次读取 `content.json` 建立渲染模型。
 - 未被调试入口或正式打包引用的旧站点脚本、下载 meta 和历史截图不保留在仓库中。
 
 ## 三方依赖口径

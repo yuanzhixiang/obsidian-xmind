@@ -13,6 +13,11 @@ declare module '*?bundle' {
     export default content;
 }
 
+declare module '*?appbundle' {
+    const content: string;
+    export default content;
+}
+
 declare module '*?xmindchunk' {
     const content: string;
     export default content;

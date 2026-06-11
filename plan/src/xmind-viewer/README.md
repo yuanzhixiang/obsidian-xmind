@@ -2,7 +2,7 @@
 
 ## 能力定位
 
-`src/xmind-viewer/` 是本地 XMind viewer 的源码化入口，用于逐步替代历史下载快照里的编译后 glue code。该目录先承接资源装配、iframe HTML 生成、MessageChannel 适配和本地 `.xmind` 文件预处理；真正的 XMind 渲染引擎仍暂时由 `src/xmind-viewer-assets/` 中的兼容资产提供。
+`src/xmind-viewer/` 是本地 XMind viewer 的源码化入口。正式 Obsidian 视图默认使用这里的源码 iframe app 解析并渲染 `.xmind` 文件，不再把 `share-embed`、`73350` 或 `snowbrush.js` 作为主运行路径。`src/xmind-viewer-assets/` 暂时只作为历史兼容参考和后续对照材料保留。
 
 ## 当前模块
 
@@ -11,6 +11,10 @@
 - `asset-loader.ts`：把资源清单转换为 Blob/Data URL，并负责回收 URL。
 - `viewer-globals.ts`：生成 iframe 内需要的 XMind 兼容全局变量、旧调度保护、分析空实现和 host shim。
 - `embed-viewer.ts`：生成 iframe HTML 壳，组合样式、脚本 URL 和 `viewer-globals.ts` 输出的 bootstrap script。
+- `native-viewer-app.ts`：iframe 内运行的源码版 viewer app，实现 MessageChannel 协议、文件解析、sheet 切换、缩放和适配画布。
+- `xmind-document.ts`：读取 `.xmind` zip 中的 `content.json`，提取 sheet 与 topic 树。
+- `renderer/layout.ts`：把 topic 树转换为左右布局的源码布局模型。
+- `renderer/svg-renderer.ts`：把布局模型渲染成 SVG，并提供缩放/居中 transform。
 - `iframe-bridge.ts`：创建 iframe，建立 Obsidian 视图到 iframe 的 MessageChannel，并提供请求/回复式命令发送能力。
 - `viewer-events.ts`：集中维护 `setup-channel`、`channel-ready`、reply id 和 viewer 命令类型。
 - `viewer-state.ts`：把 `map-ready`、`sheets-load`、`sheet-switch`、`zoom-change` 等 runtime 事件投影成源码层状态。
@@ -25,7 +29,7 @@
 
 ## 兼容层边界
 
-- `share-embed.2d8410315a.js`、`73350.03dd088904.parts/`、语言 chunk、`snowbrush.js` 仍是编译后兼容资产，不能当作正常源码继续堆业务逻辑。
+- `share-embed.2d8410315a.js`、`73350.03dd088904.parts/`、语言 chunk、`snowbrush.js` 仍是编译后历史资产，不能当作正常源码继续堆业务逻辑，也不得重新接回正式主路径。
 - `file-loader.ts` 和 `theme-loader.ts` 已经把中心主题颜色规范化迁到源码层；正式 Obsidian 视图和调试父页面都会在发送 `open-file` 前完成预处理，`share-embed` 内不得重新加入同类修复。
 - 三方通用依赖必须优先通过 `package.json` 引入，不再从历史 viewer JS 文件中复制维护。
 

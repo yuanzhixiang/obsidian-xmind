@@ -12,9 +12,10 @@
 ## 关键行为
 
 - `createViewerAssetUrls()` 每次创建一组新的 URL，调用方负责缓存。
-- `chunks` 的 key 必须保持 XMind 原始 chunk 路径，例如 `javascripts/73350.03dd088904.js`，让 `share-embed` 的 loader 语义不变。
-- 通用三方 JS 不允许从本地 viewer 静态文件引入，必须通过 `src/xmind-viewer/runtime.cjs?bundle` 从 package 依赖打包。
+- 当前正式 viewer 的 `chunks` 和 `manifests` 允许为空，因为源码版 iframe app 不再依赖旧 webpack chunk loader。
+- 如果后续为了兼容层临时恢复 chunk，key 必须保持原始请求路径；但正式主路径不得重新依赖 `share-embed`/`73350`。
 - `revokeViewerAssetUrls()` 必须回收文本 Blob URL，避免 Obsidian 长时间运行时泄露大对象。
+- `revokeViewerAssetUrls()` 只回收 `blob:` URL，避免误处理 Data URL 或普通 URL。
 
 ## 限制
 

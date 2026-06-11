@@ -14,7 +14,91 @@ const EMPTY_WORKBOOK_METADATA: XMindWorkbookMetadata = {
     sheets: [],
 };
 
+type MutationObserverValue = typeof globalThis.MutationObserver;
+
+interface SchedulerRoot {
+    MutationObserver?: MutationObserverValue;
+    WebKitMutationObserver?: MutationObserverValue;
+}
+
+interface SchedulerObserverSnapshot {
+    root: SchedulerRoot;
+    mutationObserver: MutationObserverValue | undefined;
+    webKitMutationObserver: MutationObserverValue | undefined;
+}
+
+function collectSchedulerRoots(): SchedulerRoot[] {
+    const candidates: Array<SchedulerRoot | undefined> = [
+        globalThis,
+        typeof window !== 'undefined' ? window : undefined,
+        typeof self !== 'undefined' ? self : undefined,
+    ];
+
+    return candidates.filter(
+        (root, index, roots): root is SchedulerRoot =>
+            root !== undefined && roots.indexOf(root) === index
+    );
+}
+
+function setSchedulerObserver(
+    root: SchedulerRoot,
+    property: 'MutationObserver' | 'WebKitMutationObserver',
+    value: MutationObserverValue | undefined
+): void {
+    try {
+        Object.defineProperty(root, property, {
+            configurable: true,
+            writable: true,
+            value,
+        });
+    } catch {
+        root[property] = value;
+    }
+}
+
+async function withLegacySchedulerGuard<T>(
+    operation: () => Promise<T>
+): Promise<T> {
+    const snapshots = collectSchedulerRoots().map((root) => ({
+        root,
+        mutationObserver: root.MutationObserver,
+        webKitMutationObserver: root.WebKitMutationObserver,
+    }));
+
+    for (const snapshot of snapshots) {
+        setSchedulerObserver(snapshot.root, 'MutationObserver', undefined);
+        setSchedulerObserver(
+            snapshot.root,
+            'WebKitMutationObserver',
+            undefined
+        );
+    }
+
+    try {
+        return await operation();
+    } finally {
+        for (const snapshot of snapshots) {
+            setSchedulerObserver(
+                snapshot.root,
+                'MutationObserver',
+                snapshot.mutationObserver
+            );
+            setSchedulerObserver(
+                snapshot.root,
+                'WebKitMutationObserver',
+                snapshot.webKitMutationObserver
+            );
+        }
+    }
+}
+
 export async function loadLocalXMindFile(
+    file: ArrayBuffer
+): Promise<LoadedLocalXMindFile> {
+    return withLegacySchedulerGuard(() => loadLocalXMindFileWithoutGuard(file));
+}
+
+async function loadLocalXMindFileWithoutGuard(
     file: ArrayBuffer
 ): Promise<LoadedLocalXMindFile> {
     try {

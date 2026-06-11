@@ -250,6 +250,44 @@ async function createEsModulePackageGlobalBundle(specifier, globalName) {
     }
 }
 
+async function createSourceScriptBundle(entryPath) {
+    const bundle = await createRollupBundle({
+        input: entryPath,
+        plugins: [
+            json(),
+            nodeResolve({
+                browser: true,
+                preferBuiltins: false,
+                extensions: ['.js', '.jsx', '.ts', '.tsx'],
+            }),
+            commonjs({
+                include: 'node_modules/**',
+            }),
+            typescript({
+                tsconfig: './tsconfig.json',
+                declaration: false,
+                declarationMap: false,
+                sourceMap: false,
+            }),
+        ],
+        treeshake: false,
+    });
+
+    try {
+        const { output } = await bundle.generate({
+            format: 'iife',
+            name: 'XMindNativeViewerApp',
+            sourcemap: false,
+        });
+        return output
+            .filter((chunkOrAsset) => chunkOrAsset.type === 'chunk')
+            .map((chunk) => chunk.code)
+            .join('\n');
+    } finally {
+        await bundle.close();
+    }
+}
+
 function disableLegacyMutationObserverScheduler(script, specifier) {
     if (
         specifier === 'jszip/dist/jszip.min.js' ||
@@ -500,6 +538,7 @@ function inlineAssetPlugin() {
                 !source.endsWith('?raw') &&
                 !source.endsWith('?dataurl') &&
                 !source.endsWith('?bundle') &&
+                !source.endsWith('?appbundle') &&
                 !source.endsWith('?xmindchunk')
             ) {
                 return null;
@@ -524,6 +563,10 @@ function inlineAssetPlugin() {
 
             if (query === 'bundle') {
                 return `export default ${jsStringLiteral(await createPackageRuntimeBundle(assetPath))};`;
+            }
+
+            if (query === 'appbundle') {
+                return `export default ${jsStringLiteral(await createSourceScriptBundle(assetPath))};`;
             }
 
             if (query === 'xmindchunk') {

@@ -30,13 +30,7 @@ export function createViewerAssetUrls(
         scripts: resources.scripts.map((script) =>
             createTextAssetUrl(script, 'text/javascript')
         ),
-        manifests: {
-            ...resources.manifests,
-            snowbrush: createTextAssetUrl(
-                resources.manifests.snowbrush,
-                'text/javascript'
-            ),
-        },
+        manifests: { ...resources.manifests },
         chunks,
     };
 }
@@ -50,8 +44,10 @@ export function revokeViewerAssetUrls(assetUrls: ViewerAssetUrls): void {
         ...assetUrls.css,
         ...assetUrls.scripts,
         ...chunkUrls,
-        assetUrls.manifests.snowbrush,
+        ...Object.values(assetUrls.manifests),
     ]) {
-        URL.revokeObjectURL(url);
+        if (url.startsWith('blob:')) {
+            URL.revokeObjectURL(url);
+        }
     }
 }

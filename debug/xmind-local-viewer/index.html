@@ -4,6 +4,28 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>XMind 本地调试查看器</title>
+        <script>
+            window.__xmindDebugEarlyErrors = [];
+            window.addEventListener('error', function (event) {
+                window.__xmindDebugEarlyErrors.push({
+                    message: event.message,
+                    source: event.filename,
+                    line: event.lineno,
+                    column: event.colno,
+                });
+            });
+            window.addEventListener('unhandledrejection', function (event) {
+                window.__xmindDebugEarlyErrors.push({
+                    message:
+                        event.reason && event.reason.message
+                            ? event.reason.message
+                            : String(event.reason),
+                    source: 'unhandledrejection',
+                    line: 0,
+                    column: 0,
+                });
+            });
+        </script>
         <link rel="stylesheet" href="/styles.css" />
     </head>
     <body>
@@ -62,6 +84,36 @@
             </section>
         </main>
 
+        <script>
+            (function () {
+                var roots = [];
+                if (typeof globalThis !== 'undefined') roots.push(globalThis);
+                if (
+                    typeof window !== 'undefined' &&
+                    roots.indexOf(window) === -1
+                )
+                    roots.push(window);
+                if (typeof self !== 'undefined' && roots.indexOf(self) === -1)
+                    roots.push(self);
+                roots.forEach(function (root) {
+                    try {
+                        Object.defineProperty(root, 'MutationObserver', {
+                            configurable: true,
+                            writable: true,
+                            value: undefined,
+                        });
+                        Object.defineProperty(root, 'WebKitMutationObserver', {
+                            configurable: true,
+                            writable: true,
+                            value: undefined,
+                        });
+                    } catch (error) {
+                        root.MutationObserver = undefined;
+                        root.WebKitMutationObserver = undefined;
+                    }
+                });
+            })();
+        </script>
         <script src="/debug-runtime/xmind-file-loader.js"></script>
         <script src="/app.js"></script>
     </body>

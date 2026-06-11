@@ -17,6 +17,7 @@
 - 读取 zip 根目录的 `content.json`。
 - 将解析后的内容交给 `extractXMindWorkbookMetadata()` 提取 workbook 元数据。
 - 将解析后的内容交给 `normalizeInvisibleCentralTopicTextColor()` 执行主题兼容修复。
+- 读取和重新生成 zip 期间通过 `withLegacySchedulerGuard()` 临时禁用 `MutationObserver` / `WebKitMutationObserver`，避免 JSZip 的旧调度 fallback 在 Obsidian 或调试页触发 `observe()` 参数错误。
 - 仅在实际修改时重新生成 zip，未命中时返回原始 ArrayBuffer。
 - 解析失败、缺少 `content.json` 或不是标准 zip 时返回原始 ArrayBuffer 和空 workbook 元数据，不阻断 viewer 渲染。
 

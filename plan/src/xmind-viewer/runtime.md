@@ -2,7 +2,7 @@
 
 ## 组件职责
 
-`runtime.cjs` 声明本地 iframe 需要按顺序加载的通用三方浏览器脚本。Rollup 的 `?bundle` 处理会按该清单从 `package.json` 依赖中读取 UMD/dist 文件，拼成 iframe 可直接执行的 runtime 脚本。
+`runtime.cjs` 是历史 `share-embed` / `73350` 兼容路径使用的三方 runtime 清单。当前正式主路径已经切换到 `native-viewer-app.ts?appbundle`，不再加载该 runtime。该文件暂时保留，用于旧 bundle 对照和后续迁移。
 
 ## 依赖顺序
 

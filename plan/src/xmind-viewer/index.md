@@ -8,7 +8,7 @@
 
 - 首次调用时创建 viewer 资源 URL，并用 `embed-viewer.ts` 生成 HTML Blob URL。
 - 后续调用复用同一个 HTML Blob URL，避免重复把大体积 viewer 资产放入内存。
-- 插件卸载或需要释放资源时，先回收 HTML Blob URL，再回收 CSS、JS chunk、Snowbrush 等资源 URL。
+- 插件卸载或需要释放资源时，先回收 HTML Blob URL，再回收源码 app 脚本 Blob URL 和其它资源 URL。
 - 对外导出 `XMindRenderAdapter`、`loadLocalXMindFile()`、`normalizeLocalXMindFile()` 兼容接口、workbook 元数据类型、主题兼容函数、`getViewerErrorMessage()` 和 `XMindViewerError`，`src/core` 不再直接读取 `src/xmind-viewer/` 内部子模块。
 
 ## 组合关系

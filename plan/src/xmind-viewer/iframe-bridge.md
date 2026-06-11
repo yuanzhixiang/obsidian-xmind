@@ -22,4 +22,4 @@
 
 - 本模块不解析 `.xmind`，不理解 sheet、zoom 或 XMind 渲染语义。
 - 本模块不生成 iframe HTML，不创建 Blob 资源。
-- iframe 端协议仍暂时由 `share-embed` 兼容资产提供；后续重建 iframe 端源码时，应优先对齐本模块暴露的协议常量。
+- iframe 端协议当前由 `native-viewer-app.ts` 源码实现；后续扩展命令或事件时，应先更新 `viewer-events.ts`，再同步外层 controller 和 iframe app。

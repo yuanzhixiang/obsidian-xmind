@@ -177,7 +177,7 @@ async function loadViewer() {
     setStatus('loading');
     log('load-start');
 
-    iframe.src = `/xmind-viewer-assets/local/embed-viewer.html?run=${runId}`;
+    iframe.src = `/debug-runtime/xmind-native-viewer.html?run=${runId}`;
     await setupChannel(runId);
 
     const response = await fetch(`/file.xmind?run=${runId}`, {
