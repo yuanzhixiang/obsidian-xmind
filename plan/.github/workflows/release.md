@@ -16,18 +16,19 @@
 - 使用 pnpm 10.22.0 安装依赖。
 - 使用 Node.js 22 构建。
 - 执行 `pnpm install --frozen-lockfile`，确保 CI 依赖与 `pnpm-lock.yaml` 一致。
-- 执行 `pnpm check:local-viewer`，确认本地 XMind viewer 的关键补丁仍存在。
+- 执行 `pnpm check:local-viewer`。
 - 执行 `pnpm lint`。
-- 执行 `pnpm package`，生成 `dist/` 标准资产和 `release/xmind-viewer-{version}.zip`。
+- 执行 `pnpm package`，生成 `dist/` 标准资产和本地手动安装 zip。
+- 使用 `actions/attest-build-provenance` 为 `dist/main.js`、`dist/manifest.json`、`dist/styles.css` 生成 artifact attestations。
 - 使用 `gh release create` 创建 GitHub Release。
 
 ## Release 资产口径
 
-- `dist/main.js`：Obsidian 官方安装器需要的插件入口。
-- `dist/manifest.json`：Obsidian 官方安装器需要的插件 manifest。
-- `dist/styles.css`：Obsidian 官方安装器可选下载的样式文件。
-- `release/xmind-viewer-{version}.zip`：包含本地 XMind viewer 目录的手动安装包。
+- GitHub Release 只上传 `dist/main.js`、`dist/manifest.json`、`dist/styles.css`。
+- 不上传 `release/*.zip`，因为 Obsidian 官方安装器不会下载 zip，官方扫描会将其标记为 extra unsupported file。
+- `pnpm package` 本地生成的 zip 只用于手动安装测试，不作为官方社区插件 release asset。
 
-## 已知限制
+## 权限要求
 
-Obsidian 官方社区插件安装器只下载 `main.js`、`manifest.json` 和 `styles.css`，不会自动下载额外目录。当前本地 XMind viewer 依赖 `xmind-embed-viewer-remote/` 目录，因此官方社区插件分发仍需进一步把 viewer 资产打进 `main.js` 或改成官方安装器可获取的资源形态。zip 资产适合手动安装。
+- `contents: write` 用于创建 GitHub Release。
+- `attestations: write` 和 `id-token: write` 用于生成 release asset provenance。

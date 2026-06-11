@@ -14,6 +14,8 @@ export interface MindMapLayoutTopic {
     height: number;
     depth: number;
     direction: -1 | 0 | 1;
+    branchIndex: number;
+    hiddenDescendantCount: number;
     lines: MindMapTextLine[];
     children: MindMapLayoutTopic[];
 }
@@ -35,24 +37,30 @@ interface DraftTopic {
     width: number;
     height: number;
     lines: string[];
+    branchIndex: number;
+    hiddenDescendantCount: number;
     subtreeHeight: number;
     children: DraftTopic[];
 }
 
-const FONT_SIZE = 15;
-const ROOT_FONT_SIZE = 24;
-const LINE_HEIGHT = 21;
+const MAX_VISIBLE_DEPTH = 2;
+const RIGHT_SIDE_ROOT_STRUCTURES = new Set([
+    'org.xmind.ui.map.clockwise',
+    'org.xmind.ui.logic.right',
+]);
+const LINE_HEIGHT = 23;
 const ROOT_LINE_HEIGHT = 32;
-const MIN_NODE_WIDTH = 92;
-const ROOT_MIN_NODE_WIDTH = 160;
+const MIN_NODE_WIDTH = 104;
+const ROOT_MIN_NODE_WIDTH = 220;
 const MAX_NODE_WIDTH = 260;
-const HORIZONTAL_PADDING = 16;
-const VERTICAL_PADDING = 10;
+const HORIZONTAL_PADDING = 18;
+const VERTICAL_PADDING = 8;
 const ROOT_HORIZONTAL_PADDING = 26;
 const ROOT_VERTICAL_PADDING = 16;
-const HORIZONTAL_GAP = 84;
-const VERTICAL_GAP = 22;
-const ROOT_BRANCH_GAP = 88;
+const HORIZONTAL_GAP = 92;
+const VERTICAL_GAP = 14;
+const ROOT_BRANCH_GAP = 72;
+const SUMMARY_MARKER_OUTSET = 34;
 
 function measureCharacter(char: string): number {
     return char.charCodeAt(0) > 255 ? 15 : 8;
@@ -90,7 +98,25 @@ function wrapText(text: string, maxWidth: number): string[] {
     return lines.length > 0 ? lines : ['未命名主题'];
 }
 
-function createDraft(topic: XMindTopicNode, depth: number): DraftTopic {
+function countDescendants(topic: XMindTopicNode): number {
+    return topic.children.reduce(
+        (sum, child) => sum + 1 + countDescendants(child),
+        0
+    );
+}
+
+function getVisibleChildren(
+    topic: XMindTopicNode,
+    depth: number
+): XMindTopicNode[] {
+    return depth < MAX_VISIBLE_DEPTH ? topic.children : [];
+}
+
+function createDraft(
+    topic: XMindTopicNode,
+    depth: number,
+    branchIndex = 0
+): DraftTopic {
     const isRoot = depth === 0;
     const horizontalPadding = isRoot
         ? ROOT_HORIZONTAL_PADDING
@@ -108,8 +134,8 @@ function createDraft(topic: XMindTopicNode, depth: number): DraftTopic {
         Math.min(MAX_NODE_WIDTH, textWidth + horizontalPadding * 2)
     );
     const height = lines.length * lineHeight + verticalPadding * 2;
-    const children = topic.children.map((child) =>
-        createDraft(child, depth + 1)
+    const children = getVisibleChildren(topic, depth).map((child, index) =>
+        createDraft(child, depth + 1, depth === 0 ? index : branchIndex)
     );
     const childrenHeight =
         children.reduce((sum, child) => sum + child.subtreeHeight, 0) +
@@ -120,6 +146,9 @@ function createDraft(topic: XMindTopicNode, depth: number): DraftTopic {
         width,
         height,
         lines,
+        branchIndex,
+        hiddenDescendantCount:
+            depth >= MAX_VISIBLE_DEPTH ? countDescendants(topic) : 0,
         subtreeHeight: Math.max(height, childrenHeight),
         children,
     };
@@ -185,14 +214,23 @@ function placeDraft(
         height: draft.height,
         depth,
         direction,
+        branchIndex: draft.branchIndex,
+        hiddenDescendantCount: draft.hiddenDescendantCount,
         lines: createTextLines(draft.lines, lineHeight),
         children,
     };
 }
 
 function collectBounds(topic: MindMapLayoutTopic, bounds: MindMapBounds): void {
-    bounds.minX = Math.min(bounds.minX, topic.x - topic.width / 2);
-    bounds.maxX = Math.max(bounds.maxX, topic.x + topic.width / 2);
+    const markerOutset =
+        topic.hiddenDescendantCount > 0 ? SUMMARY_MARKER_OUTSET : 0;
+    const minX =
+        topic.x - topic.width / 2 - (topic.direction < 0 ? markerOutset : 0);
+    const maxX =
+        topic.x + topic.width / 2 + (topic.direction >= 0 ? markerOutset : 0);
+
+    bounds.minX = Math.min(bounds.minX, minX);
+    bounds.maxX = Math.max(bounds.maxX, maxX);
     bounds.minY = Math.min(bounds.minY, topic.y - topic.height / 2);
     bounds.maxY = Math.max(bounds.maxY, topic.y + topic.height / 2);
 
@@ -201,20 +239,37 @@ function collectBounds(topic: MindMapLayoutTopic, bounds: MindMapBounds): void {
     }
 }
 
-export function layoutMindMap(sheet: XMindDocumentSheet): MindMapLayout {
-    const rootDraft = createDraft(sheet.rootTopic, 0);
+function isRightSideRootStructure(sheet: XMindDocumentSheet): boolean {
+    return RIGHT_SIDE_ROOT_STRUCTURES.has(
+        sheet.structureClass ?? sheet.rootTopic.structureClass ?? ''
+    );
+}
+
+function placeRightSideRootChildren(
+    rootDraft: DraftTopic,
+    root: MindMapLayoutTopic
+): void {
+    const totalHeight =
+        rootDraft.children.reduce(
+            (sum, child) => sum + child.subtreeHeight,
+            0
+        ) +
+        Math.max(0, rootDraft.children.length - 1) * ROOT_BRANCH_GAP;
+    let nextY = -totalHeight / 2;
+
+    for (const child of rootDraft.children) {
+        const childY = nextY + child.subtreeHeight / 2;
+        const childX = rootDraft.width / 2 + HORIZONTAL_GAP + child.width / 2;
+        root.children.push(placeDraft(child, childX, childY, 1, 1));
+        nextY += child.subtreeHeight + ROOT_BRANCH_GAP;
+    }
+}
+
+function placeSplitRootChildren(
+    rootDraft: DraftTopic,
+    root: MindMapLayoutTopic
+): void {
     const { left, right } = splitRootChildren(rootDraft.children);
-    const root: MindMapLayoutTopic = {
-        topic: rootDraft.topic,
-        x: 0,
-        y: 0,
-        width: rootDraft.width,
-        height: rootDraft.height,
-        depth: 0,
-        direction: 0,
-        lines: createTextLines(rootDraft.lines, ROOT_LINE_HEIGHT),
-        children: [],
-    };
 
     for (const [direction, children] of [
         [-1, left],
@@ -233,6 +288,29 @@ export function layoutMindMap(sheet: XMindDocumentSheet): MindMapLayout {
             root.children.push(placeDraft(child, childX, childY, 1, direction));
             nextY += child.subtreeHeight + ROOT_BRANCH_GAP;
         }
+    }
+}
+
+export function layoutMindMap(sheet: XMindDocumentSheet): MindMapLayout {
+    const rootDraft = createDraft(sheet.rootTopic, 0);
+    const root: MindMapLayoutTopic = {
+        topic: rootDraft.topic,
+        x: 0,
+        y: 0,
+        width: rootDraft.width,
+        height: rootDraft.height,
+        depth: 0,
+        direction: 0,
+        branchIndex: 0,
+        hiddenDescendantCount: 0,
+        lines: createTextLines(rootDraft.lines, ROOT_LINE_HEIGHT),
+        children: [],
+    };
+
+    if (isRightSideRootStructure(sheet)) {
+        placeRightSideRootChildren(rootDraft, root);
+    } else {
+        placeSplitRootChildren(rootDraft, root);
     }
 
     const bounds: MindMapBounds = {

@@ -1,35 +1,27 @@
-# 本地 XMind 调试页
+# XMind 本地调试页
 
-## 功能定位
+## 页面定位
 
-本调试页用于排查源码版本地 XMind iframe 渲染链路。页面加载 `src/xmind-viewer/native-viewer-app.ts` 打出的源码 viewer，不再加载旧 embed-viewer HTML 或 `share-embed` bundle。
+本调试页用于排查源码版本地 XMind 直接渲染链路。页面加载 `src/xmind-viewer/index.ts` 打出的源码 viewer，不再加载旧 embed-viewer HTML、iframe app 或 `share-embed` bundle。
 
 ## 用户流程
 
 - 开发者运行 `pnpm debug:xmind`。
-- 浏览器打开调试页后，父页面创建本地 iframe。
-- iframe 加载 `/debug-runtime/xmind-native-viewer.html`。
-- iframe HTML 加载 `/debug-runtime/xmind-native-viewer.js`，该脚本由 `src/xmind-viewer/native-viewer-app.ts` 打包生成。
-- 父页面从服务器读取指定 `.xmind` 文件二进制。
-- 父页面调用 `/debug-runtime/xmind-file-loader.js` 中的源码 `loadLocalXMindFile()` 打包产物，完成 workbook 元数据读取和中心主题兼容预处理。
-- 父页面通过 `MessageChannel` 发送 `open-file` 命令给 iframe。
-- 源码 iframe app 解析 `content.json`、渲染 SVG 脑图，并回传 `map-ready`、`sheets-load`、`sheet-switch`、`zoom-change` 等事件。
+- 调试服务器提供 `debug/xmind-local-viewer/index.html`。
+- 页面从 `/debug-runtime/xmind-viewer.js` 获取源码 viewer 调试 bundle。
+- 页面读取 `/file.xmind`，通过 `loadLocalXMindFile()` 预处理后创建 `XMindRenderAdapter`。
+- 页面右侧日志显示 `sheets-load`、`sheet-switch`、`zoom-change`、`map-ready` 等事件。
 
-## 调度保护
+## 交互和状态
 
-- 父页面在加载 `/debug-runtime/xmind-file-loader.js` 前禁用 `MutationObserver` / `WebKitMutationObserver`，避免 JSZip 等旧调度实现调用 `observe()` 时产生 console error。
-- iframe 内的 `/debug-runtime/xmind-native-viewer.html` 也会在加载源码 app 前执行同类保护。
-- 正式 Obsidian 主路径还会在 `file-loader.ts` 的 zip 读取期间临时执行同类保护。
+- `重新加载` 会销毁旧 viewer 并重新读取目标文件。
+- `适配画布` 调用 `viewer.fitMap()`。
+- 缩放输入和 `应用` 调用 `viewer.zoom()`。
+- Sheet 下拉调用 `viewer.switchSheet()`。
+- 错误会写入事件日志并把状态点标红。
 
-## UI/UX 约束
-
-- 页面第一屏直接显示渲染区域，不做营销式说明。
-- 顶部工具栏仅保留调试必要信息、重新加载、适配画布、缩放和 sheet 切换。
-- 右侧日志面板展示加载状态、事件和错误，便于定位问题。
-- iframe 区域保持稳定尺寸，避免状态文本或日志变化导致画布抖动。
-
-## 边界和限制
+## 约束
 
 - 本调试页不访问远程 `xmind.app/embed-viewer`。
-- `.xmind` 文件从本机绝对路径读取，不复制进仓库。
-- 旧 viewer assets 目录已删除，本调试页只验证源码 viewer 链路。
+- 本调试页不使用 iframe、MessageChannel 或动态脚本注入。
+- 调试样式应避免 Obsidian 官方 CSS lint 不支持的浏览器特性。

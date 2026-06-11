@@ -10,6 +10,8 @@ jobs:
         runs-on: ubuntu-latest
         permissions:
             contents: write
+            attestations: write
+            id-token: write
 
         steps:
             - uses: actions/checkout@v4
@@ -53,18 +55,23 @@ jobs:
             - name: Build release assets
               run: pnpm package
 
+            - name: Attest release assets
+              uses: actions/attest-build-provenance@v2
+              with:
+                  subject-path: |
+                      dist/main.js
+                      dist/manifest.json
+                      dist/styles.css
+
             - name: Create GitHub release
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   tag="${GITHUB_REF_NAME}"
-                  plugin_id="$(node -p "require('./manifest.json').id")"
-                  zip_file="release/${plugin_id}-${tag}.zip"
 
                   gh release create "$tag" \
                     --title "$tag" \
                     --generate-notes \
                     dist/main.js \
                     dist/manifest.json \
-                    dist/styles.css \
-                    "$zip_file"
+                    dist/styles.css

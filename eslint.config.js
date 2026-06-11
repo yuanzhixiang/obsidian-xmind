@@ -4,6 +4,7 @@ export default [
     {
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             parser: tsParser,
             parserOptions: {
                 ecmaVersion: 2022,

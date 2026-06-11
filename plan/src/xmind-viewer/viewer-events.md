@@ -1,21 +1,18 @@
-# Viewer 协议常量
+# Viewer 事件类型
 
 ## 组件职责
 
-`viewer-events.ts` 集中定义本地 viewer MessageChannel 协议常量、命令类型和回复事件解析函数，避免协议字符串散落在 iframe bridge、debug 页面和后续 controller 中。
+`viewer-events.ts` 集中定义本地 viewer 的事件名称和事件负载结构，避免状态事件字符串散落在渲染适配器、状态模型和调试页中。
 
-## 当前协议
+## 当前事件
 
-- 初始化命令：`setup-channel`
-- 初始化回复：`channel-ready`
-- runtime 事件消息：`event`
-- 命令回复前缀：`xmind-local-viewer`
-- 支持命令：`open-file`、`fit-map`、`zoom`、`switch-sheet`
-- 支持事件：`map-ready`、`sheets-load`、`sheet-switch`、`zoom-change`
+- `map-ready`：脑图是否完成渲染。
+- `sheets-load`：sheet 列表已加载。
+- `sheet-switch`：当前 sheet 已切换。
+- `zoom-change`：当前缩放百分比变化。
 
 ## 维护规则
 
-- 新增 viewer 命令时，先更新 `ViewerCommand` 类型，再由上层 controller 暴露有语义的方法。
-- 新增 viewer 事件时，先更新 `ViewerEventName` 和 `parseViewerEvent()`，再更新 `viewer-state.ts` 的状态投影。
-- 不在业务代码中硬编码 reply id 前缀或 `channel-ready` 字符串。
-- 后续 iframe 端协议源码化时，应复用同一套命名和语义，确保 debug viewer、Obsidian view 和自动化检查一致。
+- 新增 viewer 事件时，先更新 `ViewerEventName`，再更新 `viewer-state.ts` 的状态投影。
+- 不再维护 iframe `setup-channel`、`channel-ready`、reply id 或 MessageChannel 命令类型。
+- 调试页和正式 viewer 必须复用同一套事件命名。
