@@ -1,15 +1,24 @@
 import JSZip from 'jszip';
 import { normalizeInvisibleCentralTopicTextColor } from './theme-loader';
 
+export interface XMindTopicPosition {
+    x: number;
+    y: number;
+}
+
 export interface XMindTopicNode {
     id: string;
     title: string;
+    structureClass?: string;
+    branch?: string;
+    position?: XMindTopicPosition;
     children: XMindTopicNode[];
 }
 
 export interface XMindDocumentSheet {
     id: string;
     title: string;
+    structureClass?: string;
     rootTopic: XMindTopicNode;
 }
 
@@ -67,6 +76,24 @@ function normalizeChildList(value: unknown): unknown[] {
     return [];
 }
 
+function normalizeString(value: unknown): string | undefined {
+    return typeof value === 'string' && value ? value : undefined;
+}
+
+function normalizePosition(value: unknown): XMindTopicPosition | undefined {
+    if (!isRecord(value)) {
+        return undefined;
+    }
+
+    const x = Number(value.x);
+    const y = Number(value.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return undefined;
+    }
+
+    return { x, y };
+}
+
 function readTopicChildren(topic: UnknownRecord): unknown[] {
     const children = topic.children;
     if (!isRecord(children)) {
@@ -94,6 +121,9 @@ function parseTopic(topic: unknown, fallbackTitle: string): XMindTopicNode {
     return {
         id,
         title,
+        structureClass: normalizeString(topic.structureClass),
+        branch: normalizeString(topic.branch),
+        position: normalizePosition(topic.position),
         children: readTopicChildren(topic).map((child, index) =>
             parseTopic(child, `${title}-${index + 1}`)
         ),
@@ -112,6 +142,7 @@ function parseSheet(sheet: unknown, index: number): XMindDocumentSheet | null {
     return {
         id,
         title,
+        structureClass: rootTopic.structureClass,
         rootTopic,
     };
 }

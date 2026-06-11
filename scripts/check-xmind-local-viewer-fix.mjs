@@ -271,8 +271,14 @@ const checks = [
         pass:
             layout.includes('layoutMindMap') &&
             layout.includes('splitRootChildren') &&
+            layout.includes('RIGHT_SIDE_ROOT_STRUCTURES') &&
+            layout.includes('MAX_VISIBLE_DEPTH = 2') &&
+            layout.includes('hiddenDescendantCount') &&
+            layout.includes('placeRightSideRootChildren') &&
             svgRenderer.includes('renderNativeMindMap') &&
             svgRenderer.includes('pathBetween') &&
+            svgRenderer.includes('appendSummaryMarker') &&
+            svgRenderer.includes('hiddenDescendantCount') &&
             nativeViewerApp.includes('fitMap()') &&
             nativeViewerApp.includes('setZoom') &&
             nativeViewerApp.includes('applyTransform') &&
@@ -343,6 +349,8 @@ const checks = [
             workbookModel.includes('extractXMindWorkbookMetadata') &&
             xmindDocument.includes('XMindDocumentSheet') &&
             xmindDocument.includes('XMindTopicNode') &&
+            xmindDocument.includes('structureClass') &&
+            xmindDocument.includes('normalizePosition') &&
             !workbookModel.includes('JSZip') &&
             xmindDocument.includes("import JSZip from 'jszip'"),
     },

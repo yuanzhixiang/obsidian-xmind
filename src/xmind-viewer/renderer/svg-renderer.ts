@@ -12,6 +12,10 @@ export interface NativeMindMapView {
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const BRANCH_COLORS = ['#ff4d5a', '#ff884d', '#8b6fef', '#00a88f'];
+const BRANCH_LIGHT_COLORS = ['#ffe0e2', '#ffe9dc', '#ebe7ff', '#dff7f1'];
+const ROOT_STROKE = '#62c7ff';
+const TEXT_DARK = '#1f2328';
 
 function createSvgElement<K extends keyof SVGElementTagNameMap>(
     tagName: K
@@ -53,11 +57,21 @@ function appendConnector(
     setAttributes(path, {
         d: pathBetween(parent, child),
         fill: 'none',
-        stroke: child.direction < 0 ? '#ff8b50' : '#ff4d5a',
+        stroke: branchColor(child),
         'stroke-width': child.depth === 1 ? 3 : 2,
         'stroke-linecap': 'round',
     });
     group.appendChild(path);
+}
+
+function branchColor(topic: MindMapLayoutTopic): string {
+    return BRANCH_COLORS[Math.abs(topic.branchIndex) % BRANCH_COLORS.length];
+}
+
+function branchLightColor(topic: MindMapLayoutTopic): string {
+    return BRANCH_LIGHT_COLORS[
+        Math.abs(topic.branchIndex) % BRANCH_LIGHT_COLORS.length
+    ];
 }
 
 function nodeFill(topic: MindMapLayoutTopic): string {
@@ -65,31 +79,73 @@ function nodeFill(topic: MindMapLayoutTopic): string {
         return '#ffffff';
     }
 
-    if (topic.depth === 1 && topic.direction < 0) {
-        return '#ff884d';
-    }
-
     if (topic.depth === 1) {
-        return '#ff4d5a';
+        return branchColor(topic);
     }
 
-    return '#ffffff';
+    return branchLightColor(topic);
 }
 
 function nodeStroke(topic: MindMapLayoutTopic): string {
     if (topic.depth === 0) {
-        return '#1aa7ff';
+        return ROOT_STROKE;
     }
 
-    if (topic.depth === 1 && topic.direction < 0) {
-        return '#ff884d';
-    }
-
-    return '#ff4d5a';
+    return topic.depth === 1 ? branchColor(topic) : branchLightColor(topic);
 }
 
 function textFill(topic: MindMapLayoutTopic): string {
-    return topic.depth === 1 ? '#ffffff' : '#1f2328';
+    if (topic.depth === 1) {
+        return '#ffffff';
+    }
+
+    return TEXT_DARK;
+}
+
+function appendSummaryMarker(
+    node: SVGGElement,
+    topic: MindMapLayoutTopic
+): void {
+    if (topic.hiddenDescendantCount <= 0 || topic.depth < 2) {
+        return;
+    }
+
+    const direction = topic.direction || 1;
+    const marker = createSvgElement('g');
+    const x = direction * (topic.width / 2 + 14);
+    const y = -topic.height / 2 + 4;
+    setAttributes(marker, {
+        transform: `translate(${x} ${y})`,
+    });
+
+    const circle = createSvgElement('circle');
+    setAttributes(circle, {
+        cx: 0,
+        cy: 0,
+        r: 10,
+        fill: '#ffffff',
+        stroke: branchColor(topic),
+        'stroke-width': 1.8,
+    });
+    marker.appendChild(circle);
+
+    const text = createSvgElement('text');
+    setAttributes(text, {
+        x: 0,
+        y: 4,
+        'text-anchor': 'middle',
+        fill: branchColor(topic),
+        'font-size': 10,
+        'font-weight': 700,
+        'font-family':
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    });
+    text.textContent =
+        topic.hiddenDescendantCount > 99
+            ? '99+'
+            : String(topic.hiddenDescendantCount);
+    marker.appendChild(text);
+    node.appendChild(marker);
 }
 
 function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
@@ -107,7 +163,7 @@ function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
         rx: topic.depth === 0 ? 7 : 6,
         fill: nodeFill(topic),
         stroke: nodeStroke(topic),
-        'stroke-width': topic.depth === 0 ? 3 : topic.depth === 1 ? 0 : 1.6,
+        'stroke-width': topic.depth === 0 ? 3 : topic.depth === 1 ? 0 : 0,
     });
     node.appendChild(rect);
 
@@ -115,7 +171,7 @@ function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
     setAttributes(text, {
         'text-anchor': 'middle',
         fill: textFill(topic),
-        'font-size': topic.depth === 0 ? 24 : 15,
+        'font-size': topic.depth === 0 ? 28 : 16,
         'font-weight': topic.depth <= 1 ? 700 : 500,
         'font-family':
             '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -132,6 +188,7 @@ function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
     }
 
     node.appendChild(text);
+    appendSummaryMarker(node, topic);
     group.appendChild(node);
 }
 
