@@ -2,7 +2,7 @@
 
 ## 功能定位
 
-本调试页用于排查源码版本地 XMind iframe 渲染链路。页面加载 `src/xmind-viewer/native-viewer-app.ts` 打出的源码 viewer，不再把 `src/xmind-viewer-assets/local/embed-viewer.html` 或旧 `share-embed` 作为调试主路径。
+本调试页用于排查源码版本地 XMind iframe 渲染链路。页面加载 `src/xmind-viewer/native-viewer-app.ts` 打出的源码 viewer，不再加载旧 embed-viewer HTML 或 `share-embed` bundle。
 
 ## 用户流程
 
@@ -32,4 +32,4 @@
 
 - 本调试页不访问远程 `xmind.app/embed-viewer`。
 - `.xmind` 文件从本机绝对路径读取，不复制进仓库。
-- `src/xmind-viewer-assets/` 暂时保留为旧 bundle 参考资产，但不是本调试页的主运行链路。
+- 旧 viewer assets 目录已删除，本调试页只验证源码 viewer 链路。

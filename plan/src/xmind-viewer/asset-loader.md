@@ -7,13 +7,13 @@
 ## 资源输入
 
 - 资源清单来自 `resource-manifest.ts`。
-- `asset-loader.ts` 不直接维护 `?raw`、`?dataurl`、`?xmindchunk` import，避免资源声明和 URL 生命周期混在一起。
+- `asset-loader.ts` 不直接维护 `?raw`、`?dataurl` 或 `?appbundle` import，避免资源声明和 URL 生命周期混在一起。
 
 ## 关键行为
 
 - `createViewerAssetUrls()` 每次创建一组新的 URL，调用方负责缓存。
 - 当前正式 viewer 的 `chunks` 和 `manifests` 允许为空，因为源码版 iframe app 不再依赖旧 webpack chunk loader。
-- 如果后续为了兼容层临时恢复 chunk，key 必须保持原始请求路径；但正式主路径不得重新依赖 `share-embed`/`73350`。
+- 如果后续补齐 viewer 能力，应通过源码模块和明确依赖实现，不恢复旧 `share-embed`/`73350` chunk。
 - `revokeViewerAssetUrls()` 必须回收文本 Blob URL，避免 Obsidian 长时间运行时泄露大对象。
 - `revokeViewerAssetUrls()` 只回收 `blob:` URL，避免误处理 Data URL 或普通 URL。
 

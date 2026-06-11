@@ -6,14 +6,17 @@
 
 ## 检查内容
 
-- `resource-manifest.ts` 必须只声明 `native-viewer-app.ts?appbundle`，不得重新引用 `src/xmind-viewer-assets/`。
+- `resource-manifest.ts` 必须只声明 `native-viewer-app.ts?appbundle`，不得重新引用旧 viewer assets。
 - Rollup 必须支持 `?appbundle`，把源码 iframe app 打成 IIFE 字符串。
+- TypeScript 资源声明和 Rollup 不得重新暴露旧 `?bundle` 或 `?xmindchunk` 查询。
 - debug server 必须通过 `/debug-runtime/xmind-native-viewer.html` 和 `/debug-runtime/xmind-native-viewer.js` 使用同一份 `native-viewer-app.ts`。
+- debug server 不得重新提供 `/debug-runtime/xmind-viewer-runtime.js` 或读取 `runtime.cjs`。
 - 源码 iframe app 必须实现 `setup-channel`、`open-file`、`fit-map`、`zoom`、`switch-sheet` 和 `map-ready`、`sheets-load`、`sheet-switch`、`zoom-change` 协议。
 - `.xmind` 解析必须由 `xmind-document.ts` 和 `jszip` 完成，中心主题兼容修复继续在 `theme-loader.ts`。
+- `package.json` 的运行依赖只保留源码 viewer 实际使用的 `jszip@3.10.1`。
 - SVG 布局和渲染必须由 `renderer/layout.ts`、`renderer/svg-renderer.ts` 承担。
 - Obsidian 视图必须只导入 `src/xmind-viewer/` 稳定入口，不得直接依赖 assets 目录。
-- `src/xmind-viewer-assets/` 中的旧 `share-embed`、`73350` parts、`snowbrush.js` 只允许作为兼容参考保留，不得重新接入正式主路径。
+- `src/xmind-viewer-assets/`、`scripts/xmind-webpack-chunk-parts.mjs` 和旧 chunk 维护命令必须保持删除状态。
 
 ## 限制
 

@@ -9,9 +9,12 @@ const paths = {
     packageJson: 'package.json',
     rollupConfig: 'rollup.config.mjs',
     debugScript: 'scripts/debug-xmind-local-viewer.mjs',
+    chunkPartsScript: 'scripts/xmind-webpack-chunk-parts.mjs',
     debugIndex: 'debug/xmind-local-viewer/index.html',
     debugApp: 'debug/xmind-local-viewer/app.js',
     typingAssets: 'src/typing/assets.d.ts',
+    runtime: 'src/xmind-viewer/runtime.cjs',
+    legacyAssets: 'src/xmind-viewer-assets',
     resourceManifest: 'src/xmind-viewer/resource-manifest.ts',
     assetLoader: 'src/xmind-viewer/asset-loader.ts',
     embedViewer: 'src/xmind-viewer/embed-viewer.ts',
@@ -32,13 +35,42 @@ const paths = {
     svgRenderer: 'src/xmind-viewer/renderer/svg-renderer.ts',
     viewerView: 'src/core/x-mind-viewer-view.ts',
     viewerPlugin: 'src/core/x-mind-viewer-plugin.ts',
-    shareEmbed:
-        'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js',
-    snowbrushParts:
-        'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.parts',
-    monolithicSnowbrush:
-        'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/73350.03dd088904.js',
 };
+
+const oldRuntimeDependencyNames = [
+    '@xmldom/xmldom',
+    'animejs',
+    'axios',
+    'backbone',
+    'base64-js',
+    'bootstrap',
+    'buffer',
+    'commonmark',
+    'crypto-js',
+    'entities',
+    'file-saver',
+    'hammerjs',
+    'ieee754',
+    'inherits',
+    'jquery',
+    'js-cookie',
+    'localforage',
+    'lodash',
+    'mathjax-full',
+    'mobx',
+    'path-browserify',
+    'points',
+    'points-on-path',
+    'popper.js',
+    'process',
+    'svg-arc-to-cubic-bezier',
+    'svg-pathdata',
+    'svg-points',
+    'underscore',
+    'util',
+    'vue',
+    'vue-style-loader',
+];
 
 async function readText(relativePath) {
     return fs.readFile(path.join(projectRoot, relativePath), 'utf8');
@@ -57,9 +89,12 @@ const [
     pkg,
     rollupConfig,
     debugScript,
+    chunkPartsScriptExists,
     debugIndex,
     debugApp,
     typingAssets,
+    runtimeExists,
+    legacyAssetsExists,
     resourceManifest,
     assetLoader,
     embedViewer,
@@ -80,16 +115,16 @@ const [
     svgRenderer,
     viewerView,
     viewerPlugin,
-    shareEmbed,
-    snowbrushPartsExists,
-    monolithicSnowbrushExists,
 ] = await Promise.all([
     readText(paths.packageJson).then(JSON.parse),
     readText(paths.rollupConfig),
     readText(paths.debugScript),
+    exists(paths.chunkPartsScript),
     readText(paths.debugIndex),
     readText(paths.debugApp),
     readText(paths.typingAssets),
+    exists(paths.runtime),
+    exists(paths.legacyAssets),
     readText(paths.resourceManifest),
     readText(paths.assetLoader),
     readText(paths.embedViewer),
@@ -110,9 +145,6 @@ const [
     readText(paths.svgRenderer),
     readText(paths.viewerView),
     readText(paths.viewerPlugin),
-    readText(paths.shareEmbed),
-    exists(paths.snowbrushParts),
-    exists(paths.monolithicSnowbrush),
 ]);
 
 const sourceFiles = [
@@ -151,22 +183,27 @@ const checks = [
             resourceManifest.includes('chunks: {}'),
     },
     {
-        name: '正式源码路径不再引用 xmind-viewer-assets',
+        name: '正式源码路径不再引用旧 viewer assets',
         pass:
-            !resourceManifest.includes('../xmind-viewer-assets/') &&
-            !assetLoader.includes('../xmind-viewer-assets/') &&
-            !embedViewer.includes('../xmind-viewer-assets/') &&
-            !index.includes('../xmind-viewer-assets/'),
+            !resourceManifest.includes('xmind-viewer-assets') &&
+            !assetLoader.includes('xmind-viewer-assets') &&
+            !embedViewer.includes('xmind-viewer-assets') &&
+            !index.includes('xmind-viewer-assets') &&
+            !debugScript.includes('xmind-viewer-assets'),
     },
     {
         name: 'Rollup 支持把源码 iframe app 打成内联脚本',
         pass:
             typingAssets.includes("declare module '*?appbundle'") &&
+            !typingAssets.includes("declare module '*?bundle'") &&
+            !typingAssets.includes("declare module '*?xmindchunk'") &&
             rollupConfig.includes('createSourceScriptBundle') &&
             rollupConfig.includes("!source.endsWith('?appbundle')") &&
             rollupConfig.includes("if (query === 'appbundle')") &&
             rollupConfig.includes("format: 'iife'") &&
-            rollupConfig.includes("name: 'XMindNativeViewerApp'"),
+            rollupConfig.includes("name: 'XMindNativeViewerApp'") &&
+            !rollupConfig.includes("'?bundle'") &&
+            !rollupConfig.includes("'?xmindchunk'"),
     },
     {
         name: 'debug viewer 使用同一份源码 app',
@@ -177,6 +214,9 @@ const checks = [
             debugScript.includes('/debug-runtime/xmind-native-viewer.html') &&
             debugScript.includes('/debug-runtime/xmind-native-viewer.js') &&
             debugScript.includes('getNativeViewerAppBundle') &&
+            !debugScript.includes('/debug-runtime/xmind-viewer-runtime.js') &&
+            !debugScript.includes('xmind-webpack-chunk-parts') &&
+            !debugScript.includes('runtime.cjs') &&
             debugScript.includes("type: 'xmind-debug-error'") &&
             debugScript.includes(
                 '<script>${createDisableMutationObserverSchedulerScript()}</script>'
@@ -216,6 +256,15 @@ const checks = [
             xmindDocument.includes('normalizeInvisibleCentralTopicTextColor') &&
             xmindDocument.includes('parseXMindDocument') &&
             pkg.dependencies?.jszip === '3.10.1',
+    },
+    {
+        name: 'package 依赖只保留源码 viewer 实际使用项',
+        pass:
+            Object.keys(pkg.dependencies || {}).length === 1 &&
+            pkg.dependencies?.jszip === '3.10.1' &&
+            oldRuntimeDependencyNames.every(
+                (dependencyName) => !pkg.dependencies?.[dependencyName]
+            ),
     },
     {
         name: '源码渲染器提供 SVG 布局、中心主题、缩放和适配画布',
@@ -263,16 +312,23 @@ const checks = [
             fileLoader.includes("'WebKitMutationObserver'") &&
             themeLoader.includes("properties['fo:color']") &&
             themeLoader.includes('CENTRAL_TOPIC_FALLBACK_TEXT_COLOR') &&
-            !shareEmbed.includes('xmindNormalizeLocalOpenFile'),
+            !sourceFiles.includes('xmindNormalizeLocalOpenFile'),
     },
     {
-        name: '旧 XMind assets 仅作为兼容参考保留',
+        name: '旧 XMind assets 和历史 chunk 维护入口已删除',
         pass:
-            snowbrushPartsExists &&
-            !monolithicSnowbrushExists &&
+            !legacyAssetsExists &&
+            !chunkPartsScriptExists &&
+            !runtimeExists &&
+            !pkg.scripts?.['split:xmind-chunk'] &&
+            !pkg.scripts?.['check:xmind-chunk'] &&
+            !pkg.scripts?.['format:viewer-assets'] &&
+            pkg.scripts?.['format:viewer'] &&
             !sourceFiles.includes('share-embed.2d8410315a.js?raw') &&
             !sourceFiles.includes('73350.03dd088904.parts?xmindchunk') &&
-            !sourceFiles.includes('runtime.cjs?bundle'),
+            !sourceFiles.includes('runtime.cjs?bundle') &&
+            !typingAssets.includes('?bundle') &&
+            !typingAssets.includes('?xmindchunk'),
     },
     {
         name: '静态资源加载器支持空 manifest 和空 chunks',

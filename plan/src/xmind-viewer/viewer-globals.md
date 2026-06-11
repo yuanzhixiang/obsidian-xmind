@@ -24,4 +24,4 @@
 
 ## 验证方式
 
-修改本模块后至少运行 `pnpm check:local-viewer`、`pnpm check:xmind-chunk` 和 `pnpm build`。涉及调度保护、资源映射或 manifest 时，还需要运行 `pnpm debug:xmind`，确认 `map-ready`、`sheets-load`、缩放、适配画布、中心主题显示和浏览器 console 都正常。
+修改本模块后至少运行 `pnpm check:local-viewer` 和 `pnpm build`。涉及调度保护、资源映射或 manifest 时，还需要运行 `pnpm debug:xmind`，确认 `map-ready`、`sheets-load`、缩放、适配画布、中心主题显示和浏览器 console 都正常。

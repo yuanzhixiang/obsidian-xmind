@@ -17,4 +17,4 @@
 
 ## 限制
 
-该入口不解析 `.xmind`，不处理 MessageChannel，也不加载远程 `xmind.app/embed-viewer`。所有 viewer 运行逻辑由 `src/xmind-viewer/` 和 `src/xmind-viewer-assets/` 承担。
+该入口不解析 `.xmind`，不处理 MessageChannel，也不加载远程 `xmind.app/embed-viewer`。所有 viewer 运行逻辑由 `src/xmind-viewer/` 的源码模块承担。

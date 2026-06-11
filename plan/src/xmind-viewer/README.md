@@ -2,7 +2,7 @@
 
 ## 能力定位
 
-`src/xmind-viewer/` 是本地 XMind viewer 的源码化入口。正式 Obsidian 视图默认使用这里的源码 iframe app 解析并渲染 `.xmind` 文件，不再把 `share-embed`、`73350` 或 `snowbrush.js` 作为主运行路径。`src/xmind-viewer-assets/` 暂时只作为历史兼容参考和后续对照材料保留。
+`src/xmind-viewer/` 是本地 XMind viewer 的源码化入口。正式 Obsidian 视图默认使用这里的源码 iframe app 解析并渲染 `.xmind` 文件，不再把旧 `share-embed`、`73350` 或 `snowbrush.js` 作为主运行路径，历史 `src/xmind-viewer-assets/` 编译产物目录已删除。
 
 ## 当前模块
 
@@ -25,12 +25,11 @@
 - `zoom-controller.ts`：维护当前缩放值、适配画布和设置缩放比例行为。
 - `render-adapter.ts`：作为 viewer 外层门面，组合 iframe bridge、state、sheet controller 和 zoom controller。
 - `errors.ts`：维护 viewer 错误类型和用户可见错误文案转换。
-- `runtime.cjs`：声明 iframe 三方 runtime 的 package 脚本清单。
 
 ## 兼容层边界
 
-- `share-embed.2d8410315a.js`、`73350.03dd088904.parts/`、语言 chunk、`snowbrush.js` 仍是编译后历史资产，不能当作正常源码继续堆业务逻辑，也不得重新接回正式主路径。
-- `file-loader.ts` 和 `theme-loader.ts` 已经把中心主题颜色规范化迁到源码层；正式 Obsidian 视图和调试父页面都会在发送 `open-file` 前完成预处理，`share-embed` 内不得重新加入同类修复。
+- 旧 `share-embed`、`73350`、语言 chunk、`snowbrush.js` 不再保留在仓库中；如需补齐能力，应在本目录新增明确职责的源码模块。
+- `file-loader.ts` 和 `theme-loader.ts` 已经把中心主题颜色规范化迁到源码层；正式 Obsidian 视图和调试父页面都会在发送 `open-file` 前完成预处理。
 - 三方通用依赖必须优先通过 `package.json` 引入，不再从历史 viewer JS 文件中复制维护。
 
 ## 迁移口径
