@@ -19,7 +19,6 @@
 - viewer 内部提供缩放、适配画布和 sheet 标签等只读控件。
 - 视图标题显示当前文件 basename，便于 Obsidian 标签页识别。
 - 视图的 pane menu 必须保留 Obsidian 默认的 Split 操作，并补齐文件操作：
-    - `Open as markdown`：在当前 leaf 中以 `markdown` view type 打开当前 `.xmind` 文件，便于用户临时查看原始文本内容。
     - `Copy path`：优先使用 Obsidian 运行时支持的 submenu，包含 `as Obsidian URL`、`from vault folder`、`from system root`；如果运行时不支持 submenu，则顶层 `Copy path` 复制 vault 相对路径。
 - XMind pane menu 打开时，`Command+W`/`Ctrl+W` 只关闭菜单并阻止默认标签页关闭行为。
 - `onPaneMenu()` 的 `source` 参数按 Obsidian 运行时传入字符串处理；不在本地声明 `literal | string` 冗余 union，避免官方源码扫描产生覆盖告警。
@@ -38,6 +37,7 @@
 - Obsidian 正式安装只依赖 `main.js`、`manifest.json`、`styles.css` 三个发布资产。
 - 文件二进制只在本地 Obsidian WebView 内处理。
 - 预处理只修改传入 viewer 的内存副本，不写回 vault 文件。
+- 不得把 `.xmind` 原文件交给 Obsidian markdown view 打开；Markdown 源码保存会把二进制 zip 当文本写回，破坏 XMind 文件。
 - `Copy path` 只写入系统剪贴板，不上传路径；`from system root` 仅在 adapter 暴露 `getFullPath()` 时可用。
 
 ## 响应式行为

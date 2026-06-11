@@ -76,7 +76,6 @@ export class XMindViewerView extends FileView {
         }
 
         menu.addSeparator();
-        this.addOpenAsMarkdownMenuItem(menu, this.file);
         this.addCopyPathMenuItem(menu, this.file);
     }
 
@@ -96,16 +95,6 @@ export class XMindViewerView extends FileView {
     async onUnloadFile(): Promise<void> {
         this.viewer?.destroy();
         this.viewer = null;
-    }
-
-    private addOpenAsMarkdownMenuItem(menu: Menu, file: TFile): void {
-        menu.addItem((item) => {
-            item.setTitle('Open as markdown')
-                .setIcon('file-text')
-                .onClick(() => {
-                    void this.openAsMarkdown(file);
-                });
-        });
     }
 
     private addCopyPathMenuItem(menu: Menu, file: TFile): void {
@@ -177,17 +166,6 @@ export class XMindViewerView extends FileView {
 
         menuWindow.addEventListener('keydown', closeMenu, true);
         menu.onHide(cleanup);
-    }
-
-    private async openAsMarkdown(file: TFile): Promise<void> {
-        await this.leaf.setViewState({
-            type: 'markdown',
-            state: {
-                file: file.path,
-                mode: 'source',
-            },
-            active: true,
-        });
     }
 
     private async copyPath(file: TFile, kind: CopyPathKind): Promise<void> {

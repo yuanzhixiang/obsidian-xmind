@@ -243,15 +243,15 @@ const checks = [
             !viewerPlugin.includes('../xmind-viewer-assets'),
     },
     {
-        name: 'XMind pane menu 提供文件操作并拦截 Mod+W 关闭菜单',
+        name: 'XMind pane menu 提供安全文件操作并拦截 Mod+W 关闭菜单',
         pass:
             viewerView.includes('onPaneMenu') &&
-            viewerView.includes('Open as markdown') &&
             viewerView.includes('Copy path') &&
             viewerView.includes('as Obsidian URL') &&
             viewerView.includes('from vault folder') &&
             viewerView.includes('from system root') &&
-            viewerView.includes("type: 'markdown'") &&
+            !viewerView.includes('Open as markdown') &&
+            !viewerView.includes("type: 'markdown'") &&
             viewerView.includes('setUseNativeMenu(false)') &&
             viewerView.includes('event.preventDefault()') &&
             viewerView.includes('menu.hide()'),
