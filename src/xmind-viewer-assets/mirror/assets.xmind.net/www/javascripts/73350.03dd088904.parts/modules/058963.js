@@ -1,20 +1,17 @@
 export default {
-    58963: function (e, t, i) {
-        var n, r, o, a;
-        e.exports =
-            ((a = i(95292)),
-            i(54668),
-            (r = (n = a).lib.CipherParams),
-            (o = n.enc.Hex),
-            (n.format.Hex = {
-                stringify: function (e) {
-                    return e.ciphertext.toString(o);
-                },
-                parse: function (e) {
-                    var t = o.parse(e);
-                    return r.create({ ciphertext: t });
-                },
-            }),
-            a.format.Hex);
+    58963: function (e) {
+        const t = window.__xmindPackageCryptoJS;
+        if (!t) {
+            throw new Error(
+                'XMind viewer runtime requires package-provided CryptoJS.'
+            );
+        }
+        const n = t.format && t.format.Hex;
+        if (!n) {
+            throw new Error(
+                'XMind viewer runtime CryptoJS is missing module 58963.'
+            );
+        }
+        e.exports = n;
     },
 };

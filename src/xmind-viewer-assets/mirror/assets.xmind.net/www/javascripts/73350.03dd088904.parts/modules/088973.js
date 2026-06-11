@@ -1,9 +1,17 @@
 export default {
-    88973: function (e, t, i) {
+    88973: function (e) {
         'use strict';
-        ((e.exports.Node = i(31801)),
-            (e.exports.Parser = i(52890)),
-            (e.exports.HtmlRenderer = i(97776)),
-            (e.exports.XmlRenderer = i(22216)));
+        const t = window.__xmindPackageCommonmark;
+        if (!t)
+            throw new Error(
+                'XMind viewer runtime requires package-provided CommonMark.'
+            );
+        e.exports = {
+            Node: t.Node,
+            Parser: t.Parser,
+            HtmlRenderer: t.HtmlRenderer,
+            XmlRenderer: t.XmlRenderer,
+            Renderer: t.Renderer,
+        };
     },
 };

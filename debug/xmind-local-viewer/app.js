@@ -65,6 +65,21 @@ function updateSheets(sheets) {
     }
 }
 
+async function preprocessLocalXMindFile(file) {
+    if (!window.XMindDebugFileLoader) {
+        throw new Error('源码 file-loader 调试运行时未加载');
+    }
+
+    const loaded = await window.XMindDebugFileLoader.loadLocalXMindFile(file);
+    if (loaded.binary !== file) {
+        log('file-preprocessed', {
+            before: file.byteLength,
+            after: loaded.binary.byteLength,
+        });
+    }
+    return loaded.binary;
+}
+
 function handlePortMessage(event) {
     const [message, eventName, payload] = event.data || [];
     if (message !== 'event') {
@@ -173,8 +188,9 @@ async function loadViewer() {
     }
     const file = await response.arrayBuffer();
     log('file-read', file);
+    const loadedFile = await preprocessLocalXMindFile(file);
 
-    await emit('open-file', file);
+    await emit('open-file', loadedFile);
     log('open-file-sent');
 }
 
@@ -200,6 +216,16 @@ sheetSelect.addEventListener('change', () => {
 });
 clearLogButton.addEventListener('click', () => {
     eventLog.innerHTML = '';
+});
+
+window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) {
+        return;
+    }
+    if (!event.data || event.data.type !== 'xmind-debug-error') {
+        return;
+    }
+    log('iframe-error', event.data);
 });
 
 window.addEventListener('error', (event) => {

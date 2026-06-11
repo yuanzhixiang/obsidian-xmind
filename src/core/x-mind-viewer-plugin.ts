@@ -1,7 +1,7 @@
 import { Plugin } from 'obsidian';
 import { XMindViewerView } from './x-mind-viewer-view';
 import { XMIND_VIEW_TYPE } from '../typing/types';
-import { revokeInlineXMindViewerAssets } from './xmind-viewer-assets';
+import { revokeInlineXMindViewerAssets } from '../xmind-viewer';
 
 export class XMindViewerPlugin extends Plugin {
     /**

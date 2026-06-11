@@ -1,40 +1,17 @@
 export default {
-    4241: function (e, t, i) {
-        var n;
-        e.exports =
-            ((n = i(95292)),
-            i(73677),
-            i(92183),
-            i(78692),
-            i(36127),
-            i(25439),
-            i(47620),
-            i(92012),
-            i(49909),
-            i(63751),
-            i(9735),
-            i(34195),
-            i(70709),
-            i(81441),
-            i(31413),
-            i(70757),
-            i(54668),
-            i(78466),
-            i(35725),
-            i(5112),
-            i(74418),
-            i(69203),
-            i(34252),
-            i(53572),
-            i(36162),
-            i(33766),
-            i(73872),
-            i(58963),
-            i(13214),
-            i(90731),
-            i(65256),
-            i(28818),
-            i(84159),
-            n);
+    4241: function (e) {
+        const t = window.__xmindPackageCryptoJS;
+        if (!t) {
+            throw new Error(
+                'XMind viewer runtime requires package-provided CryptoJS.'
+            );
+        }
+        const n = t;
+        if (!n) {
+            throw new Error(
+                'XMind viewer runtime CryptoJS is missing module 4241.'
+            );
+        }
+        e.exports = n;
     },
 };

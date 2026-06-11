@@ -18,6 +18,10 @@ const shareEmbedPath = path.join(
     projectRoot,
     'src/xmind-viewer-assets/mirror/assets.xmind.net/www/javascripts/share-embed.2d8410315a.js'
 );
+const themeLoaderPath = path.join(
+    projectRoot,
+    'src/xmind-viewer/theme-loader.ts'
+);
 const topModulePattern = /\n {4,8}(\d+): function \(/g;
 const innerModulePattern = /\n                function \(/g;
 const chunkSuffix = '\n    },\n]);';
@@ -350,9 +354,27 @@ export async function checkXMindChunkParts(partsDir = defaultPartsDir) {
     );
     const assembled = await assembleXMindChunkParts(partsDir);
     const shareEmbed = await fs.readFile(shareEmbedPath, 'utf8');
+    const themeLoader = await fs.readFile(themeLoaderPath, 'utf8');
     const topModuleCount = countTopModules(assembled);
     const splitModule = manifest.modules.find(
         (modulePart) => modulePart.id === '73350'
+    );
+    const pointsOnPathModule = manifest.modules.find(
+        (modulePart) => modulePart.id === '80930'
+    );
+    const pointsOnPathModuleSource = pointsOnPathModule
+        ? await fs.readFile(
+              path.join(partsDir, pointsOnPathModule.file),
+              'utf8'
+          )
+        : '';
+    const processModuleSource = await fs.readFile(
+        path.join(partsDir, 'modules/073350/inner/0045.js'),
+        'utf8'
+    );
+    const fileSaverModuleSource = await fs.readFile(
+        path.join(partsDir, 'modules/073350/inner/0102.js'),
+        'utf8'
     );
 
     const checks = [
@@ -400,12 +422,307 @@ export async function checkXMindChunkParts(partsDir = defaultPartsDir) {
                 ),
         },
         {
-            name: 'central topic compatibility fix remains in share embed',
+            name: 'Snowbrush chunk delegates Backbone to package runtime',
             pass:
-                shareEmbed.includes('xmindNormalizeLocalOpenFile(o)') &&
-                shareEmbed.includes('e.theme.centralTopic') &&
-                shareEmbed.includes('e.theme.topicThemeMap.centralTopic') &&
-                shareEmbed.includes("['fo:color'] = '#000000'"),
+                !assembled.includes("t.VERSION = '1.4.1'") &&
+                assembled.includes('window.Backbone') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided Backbone.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates Underscore to package runtime',
+            pass:
+                !assembled.includes("var r = '1.13.6'") &&
+                !assembled.includes('de.VERSION = r') &&
+                assembled.includes('window.__xmindPackageUnderscore') &&
+                assembled.includes("Object.defineProperty(n, '__esModule'") &&
+                assembled.includes("Object.defineProperty(n, 'default'") &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided Underscore.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates MobX to package runtime',
+            pass:
+                !assembled.includes('__mobxGlobals') &&
+                !assembled.includes('mobxGuid') &&
+                !assembled.includes(
+                    'Find the full error at: https://github.com/mobxjs/mobx/blob/main/packages/mobx/src/errors.ts'
+                ) &&
+                assembled.includes('window.__xmindPackageMobX') &&
+                assembled.includes("Object.defineProperty(n, '__esModule'") &&
+                assembled.includes("'__esModule' !== e") &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided MobX.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates CryptoJS to package runtime',
+            pass:
+                !assembled.includes('CryptoJS core components') &&
+                !assembled.includes('derived from CryptoJS.mode.CTR') &&
+                !assembled.includes('Native crypto from window (Browser)') &&
+                assembled.includes('window.__xmindPackageCryptoJS') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided CryptoJS.'
+                ) &&
+                assembled.includes(
+                    'XMind viewer runtime CryptoJS is missing module 13214.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates xmldom to package runtime',
+            pass:
+                !assembled.includes('[xmldom warning]') &&
+                !assembled.includes('attribute equal must after attrName') &&
+                !assembled.includes('unknow Class:') &&
+                assembled.includes('window.__xmindPackageXmldom') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided xmldom.'
+                ) &&
+                assembled.includes(
+                    'XMind viewer xmldom XMLReader is hidden behind the DOMParser bridge.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates Buffer stack to package runtime',
+            pass:
+                !assembled.includes(
+                    'The buffer module from node.js, for the browser.'
+                ) &&
+                !assembled.includes(
+                    'Invalid string. Length must be a multiple of 4'
+                ) &&
+                !assembled.includes('ieee754. BSD-3-Clause License') &&
+                assembled.includes('window.__xmindPackageBuffer') &&
+                assembled.includes('window.__xmindPackageBase64Js') &&
+                assembled.includes('window.__xmindPackageIeee754') &&
+                assembled.includes('e.exports = Array.isArray') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided Buffer.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates CommonMark to package runtime',
+            pass:
+                !assembled.includes('http://commonmark.org/xml/1.0') &&
+                !assembled.includes('raw HTML omitted') &&
+                assembled.includes('window.__xmindPackageCommonmark') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided CommonMark.'
+                ) &&
+                assembled.includes(
+                    'XMind viewer CommonMark internal helper has moved to package runtime.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates util and inherits to package runtime',
+            pass:
+                !assembled.includes('t.debuglog = function') &&
+                !assembled.includes('t.inherits = i(9846)') &&
+                !assembled.includes(
+                    'function (e, t) {\n                  ((e.super_'
+                ) &&
+                assembled.includes('window.__xmindPackageUtil') &&
+                assembled.includes('window.__xmindPackageInherits') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided util.'
+                ) &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided inherits.'
+                ),
+        },
+        {
+            name: 'Snowbrush nested bundle delegates process shim to package runtime',
+            pass:
+                !processModuleSource.includes(
+                    'setTimeout has not been defined'
+                ) &&
+                !processModuleSource.includes(
+                    'process.binding is not supported'
+                ) &&
+                !processModuleSource.includes(
+                    'process.chdir is not supported'
+                ) &&
+                processModuleSource.includes('window.__xmindPackageProcess') &&
+                processModuleSource.includes(
+                    'XMind viewer runtime requires package-provided process shim.'
+                ),
+        },
+        {
+            name: 'Snowbrush nested bundle delegates FileSaver.js to package runtime',
+            pass:
+                !fileSaverModuleSource.includes(
+                    'purl.eligrey.com/github/FileSaver.js'
+                ) &&
+                !fileSaverModuleSource.includes('msSaveOrOpenBlob') &&
+                !fileSaverModuleSource.includes('data:attachment/file;') &&
+                fileSaverModuleSource.includes(
+                    'window.__xmindPackageFileSaver'
+                ) &&
+                fileSaverModuleSource.includes(
+                    'XMind viewer runtime requires package-provided FileSaver.js.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates entities to package runtime',
+            pass:
+                !assembled.includes('var n = i(73267)') &&
+                !assembled.includes("'&(?:'") &&
+                !assembled.includes('http://mths.be/fromcodepoint') &&
+                !assembled.includes('"andslope":"⩘"') &&
+                assembled.includes('window.__xmindPackageEntities') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided entities.'
+                ) &&
+                assembled.includes(
+                    'XMind viewer entities HTML5 map moved to package runtime.'
+                ) &&
+                assembled.includes(
+                    'XMind viewer entities fromCodePoint helper moved to package runtime.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates MathJax to package runtime',
+            pass:
+                !assembled.includes("version: '3.1.2'") &&
+                !assembled.includes('input/tex-full') &&
+                !assembled.includes('output/svg/fonts/tex.js') &&
+                !assembled.includes('RegisterHTMLHandler') &&
+                assembled.includes('window.__xmindPackageMathJax') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided MathJax.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates svg-pathdata to package runtime',
+            pass:
+                !assembled.includes('COMMAND_ARG_COUNTS') &&
+                !assembled.includes('Unexpected command type') &&
+                !assembled.includes('Unterminated command at the path end.') &&
+                assembled.includes('window.__xmindPackageSvgPathData') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided svg-pathdata.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates points to package runtime',
+            pass:
+                !assembled.includes(
+                    '`add` function must be passed a number as the second argument'
+                ) &&
+                !assembled.includes(
+                    'Invalid attempt to spread non-iterable instance'
+                ) &&
+                !assembled.includes('segmentInterval') &&
+                assembled.includes('window.__xmindPackagePoints') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided points.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates points-on-path to package runtime',
+            pass:
+                !pointsOnPathModuleSource.includes('Path data ended short') &&
+                !pointsOnPathModuleSource.includes('Param not a number:') &&
+                !pointsOnPathModuleSource.includes('Bad segment:') &&
+                pointsOnPathModuleSource.includes(
+                    'window.__xmindPackagePointsOnPath'
+                ) &&
+                pointsOnPathModuleSource.includes(
+                    'XMind viewer runtime requires package-provided points-on-path.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates svg-points to package runtime',
+            pass:
+                !assembled.includes('Not a valid shape type') &&
+                !assembled.includes('prop is required on a') &&
+                !assembled.includes('prop must be one of circle') &&
+                assembled.includes('window.__xmindPackageSvgPoints') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided svg-points.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates path-browserify to package runtime',
+            pass:
+                !assembled.includes(
+                    'Arguments to path.resolve must be strings'
+                ) &&
+                !assembled.includes('Arguments to path.join must be strings') &&
+                assembled.includes('window.__xmindPackagePath') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided path-browserify.'
+                ),
+        },
+        {
+            name: 'Snowbrush chunk delegates Hammer.js to package runtime',
+            pass:
+                !assembled.includes('Hammer.JS - v2.0.7') &&
+                assembled.includes('window.__xmindPackageHammer') &&
+                assembled.includes(
+                    'XMind viewer runtime requires package-provided Hammer.js.'
+                ),
+        },
+        {
+            name: 'share bundle delegates anime.js to package runtime',
+            pass:
+                !shareEmbed.includes("easing: 'easeOutElastic(1, .5)'") &&
+                shareEmbed.includes('window.anime') &&
+                shareEmbed.includes(
+                    'XMind viewer runtime requires package-provided anime.js.'
+                ),
+        },
+        {
+            name: 'share bundle delegates axios to package runtime',
+            pass:
+                !shareEmbed.includes('s.CancelToken = r(94200)') &&
+                !shareEmbed.includes('Embedded axios internal module 14224') &&
+                shareEmbed.includes('window.axios') &&
+                shareEmbed.includes(
+                    'XMind viewer runtime requires package-provided axios.'
+                ) &&
+                shareEmbed.includes(
+                    'Embedded axios internal module 96495 was removed'
+                ),
+        },
+        {
+            name: 'share bundle delegates vue-style-loader to package runtime',
+            pass:
+                !shareEmbed.includes(
+                    'vue-style-loader cannot be used in a non-browser environment'
+                ) &&
+                !shareEmbed.includes('data-vue-ssr-id') &&
+                shareEmbed.includes('window.__xmindPackageVueStyleLoader') &&
+                shareEmbed.includes(
+                    'XMind viewer runtime requires package-provided vue-style-loader.'
+                ),
+        },
+        {
+            name: 'share bundle keeps minimal browser process shim for Snowbrush',
+            pass:
+                shareEmbed.includes("platform: 'browser'") &&
+                shareEmbed.includes('nextTick: function') &&
+                shareEmbed.includes('process.chdir is not supported.'),
+        },
+        {
+            name: 'central topic compatibility fix lives in source theme loader',
+            pass:
+                !shareEmbed.includes('xmindNormalizeLocalOpenFile') &&
+                !shareEmbed.includes('xmindShouldNormalizeCentralTopicColor') &&
+                !shareEmbed.includes("['fo:color'] = '#000000'") &&
+                themeLoader.includes(
+                    'normalizeInvisibleCentralTopicTextColor'
+                ) &&
+                themeLoader.includes('theme?.centralTopic?.properties') &&
+                themeLoader.includes(
+                    'theme?.topicThemeMap?.centralTopic?.properties'
+                ) &&
+                themeLoader.includes(
+                    "properties['fo:color'] = CENTRAL_TOPIC_FALLBACK_TEXT_COLOR"
+                ),
         },
     ];
 

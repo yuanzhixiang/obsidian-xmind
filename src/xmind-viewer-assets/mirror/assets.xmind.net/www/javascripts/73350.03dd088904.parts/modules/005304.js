@@ -1,8 +1,7 @@
 export default {
-    5304: function (e) {
-        'use strict';
-        e.exports = JSON.parse(
-            '{"amp":"&","apos":"\'","gt":">","lt":"<","quot":"\\""}'
+    5304: function () {
+        throw new Error(
+            'XMind viewer entities XML map moved to package runtime.'
         );
     },
 };

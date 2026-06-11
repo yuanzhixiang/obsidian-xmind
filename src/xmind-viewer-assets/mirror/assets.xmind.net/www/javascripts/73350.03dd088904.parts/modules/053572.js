@@ -1,22 +1,17 @@
 export default {
-    53572: function (e, t, i) {
-        var n;
-        e.exports =
-            ((n = i(95292)),
-            i(54668),
-            (n.pad.Iso10126 = {
-                pad: function (e, t) {
-                    var i = 4 * t,
-                        r = i - (e.sigBytes % i);
-                    e.concat(n.lib.WordArray.random(r - 1)).concat(
-                        n.lib.WordArray.create([r << 24], 1)
-                    );
-                },
-                unpad: function (e) {
-                    var t = 255 & e.words[(e.sigBytes - 1) >>> 2];
-                    e.sigBytes -= t;
-                },
-            }),
-            n.pad.Iso10126);
+    53572: function (e) {
+        const t = window.__xmindPackageCryptoJS;
+        if (!t) {
+            throw new Error(
+                'XMind viewer runtime requires package-provided CryptoJS.'
+            );
+        }
+        const n = t.pad && t.pad.Iso10126;
+        if (!n) {
+            throw new Error(
+                'XMind viewer runtime CryptoJS is missing module 53572.'
+            );
+        }
+        e.exports = n;
     },
 };

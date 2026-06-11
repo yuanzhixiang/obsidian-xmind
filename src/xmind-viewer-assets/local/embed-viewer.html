@@ -37,6 +37,57 @@
     <body>
         <script>
             window.__XMIND_ASSET_BASE__ = '../mirror/assets.xmind.net/www/';
+            var __xmindSchedulerRoots = [];
+            if (typeof globalThis !== 'undefined')
+                __xmindSchedulerRoots.push(globalThis);
+            if (
+                typeof window !== 'undefined' &&
+                __xmindSchedulerRoots.indexOf(window) === -1
+            )
+                __xmindSchedulerRoots.push(window);
+            if (
+                typeof self !== 'undefined' &&
+                __xmindSchedulerRoots.indexOf(self) === -1
+            )
+                __xmindSchedulerRoots.push(self);
+            if (
+                typeof global !== 'undefined' &&
+                __xmindSchedulerRoots.indexOf(global) === -1
+            )
+                __xmindSchedulerRoots.push(global);
+            function __xmindDisableSchedulerObserver(root, property) {
+                try {
+                    Object.defineProperty(root, property, {
+                        configurable: true,
+                        writable: true,
+                        value: undefined,
+                    });
+                } catch (error) {
+                    root[property] = undefined;
+                }
+            }
+            __xmindSchedulerRoots.forEach(function (root) {
+                __xmindDisableSchedulerObserver(root, 'MutationObserver');
+                __xmindDisableSchedulerObserver(root, 'WebKitMutationObserver');
+            });
+            window.addEventListener('error', function (event) {
+                try {
+                    window.parent.postMessage(
+                        {
+                            type: 'xmind-debug-error',
+                            message: event.message,
+                            filename: event.filename,
+                            lineno: event.lineno,
+                            colno: event.colno,
+                            stack:
+                                event.error && event.error.stack
+                                    ? event.error.stack
+                                    : null,
+                        },
+                        window.location.origin
+                    );
+                } catch (error) {}
+            });
             window.dataLayer = window.dataLayer || [];
             window.gtag = function () {};
             window.mixpanel = {

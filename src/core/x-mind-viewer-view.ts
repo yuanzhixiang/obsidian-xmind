@@ -1,13 +1,17 @@
 import { App, IconName, FileView, TFile, WorkspaceLeaf } from 'obsidian';
 import { XMindViewerPlugin } from './x-mind-viewer-plugin';
-import { LocalXMindEmbedViewer } from './local-xmind-embed-viewer';
-import { getInlineXMindViewerUrl } from './xmind-viewer-assets';
 import { XMIND_VIEW_TYPE } from '../typing/types';
+import {
+    getInlineXMindViewerUrl,
+    getViewerErrorMessage,
+    loadLocalXMindFile,
+    XMindRenderAdapter,
+} from '../xmind-viewer';
 
 export class XMindViewerView extends FileView {
     plugin: XMindViewerPlugin;
     styles: Partial<CSSStyleDeclaration>;
-    private viewer: LocalXMindEmbedViewer | null = null;
+    private viewer: XMindRenderAdapter | null = null;
     constructor(leaf: WorkspaceLeaf, app: App, plugin: XMindViewerPlugin) {
         super(leaf);
         this.app = app;
@@ -35,12 +39,14 @@ export class XMindViewerView extends FileView {
     }
 
     async onLoadFile(file: TFile): Promise<void> {
-        const binary = await this.app.vault.readBinary(file);
+        const loadedFile = await loadLocalXMindFile(
+            await this.app.vault.readBinary(file)
+        );
         this.viewer?.destroy();
         this.prepareContentEl();
-        this.viewer = new LocalXMindEmbedViewer({
+        this.viewer = new XMindRenderAdapter({
             el: this.contentEl,
-            file: binary,
+            file: loadedFile.binary,
             viewerUrl: getInlineXMindViewerUrl(),
             styles: this.styles,
             onError: (error): void => this.showError(error),
@@ -65,14 +71,10 @@ export class XMindViewerView extends FileView {
     }
 
     private showError(error: unknown): void {
-        const message =
-            error instanceof Error
-                ? error.message
-                : 'XMind viewer failed to load.';
         this.contentEl.empty();
         this.contentEl.createDiv({
             cls: 'xmind-viewer-error',
-            text: `XMind 渲染失败：${message}`,
+            text: `XMind 渲染失败：${getViewerErrorMessage(error)}`,
         });
     }
 }

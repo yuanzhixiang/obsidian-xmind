@@ -1,23 +1,17 @@
 export default {
-    33766: function (e, t, i) {
-        var n;
-        e.exports =
-            ((n = i(95292)),
-            i(54668),
-            (n.pad.ZeroPadding = {
-                pad: function (e, t) {
-                    var i = 4 * t;
-                    (e.clamp(), (e.sigBytes += i - (e.sigBytes % i || i)));
-                },
-                unpad: function (e) {
-                    for (
-                        var t = e.words, i = e.sigBytes - 1;
-                        !((t[i >>> 2] >>> (24 - (i % 4) * 8)) & 255);
-                    )
-                        i--;
-                    e.sigBytes = i + 1;
-                },
-            }),
-            n.pad.ZeroPadding);
+    33766: function (e) {
+        const t = window.__xmindPackageCryptoJS;
+        if (!t) {
+            throw new Error(
+                'XMind viewer runtime requires package-provided CryptoJS.'
+            );
+        }
+        const n = t.pad && t.pad.ZeroPadding;
+        if (!n) {
+            throw new Error(
+                'XMind viewer runtime CryptoJS is missing module 33766.'
+            );
+        }
+        e.exports = n;
     },
 };
