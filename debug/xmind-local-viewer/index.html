@@ -40,14 +40,18 @@
                     ></span>
                     <div>
                         <h1>XMind 调试查看器</h1>
-                        <p id="fileLabel">
-                            /Users/yuanzhixiang/Desktop/202606101441
-                            搞到钱再说.xmind
-                        </p>
+                        <p id="fileLabel">等待加载默认文件</p>
                     </div>
                 </section>
 
                 <section class="controls" aria-label="查看器控制">
+                    <input
+                        id="fileInput"
+                        type="file"
+                        accept=".xmind,application/octet-stream"
+                        hidden
+                    />
+                    <button id="openFileButton" type="button">打开文件</button>
                     <button id="reloadButton" type="button">重新加载</button>
                     <button id="fitButton" type="button">适配画布</button>
                     <label class="field">

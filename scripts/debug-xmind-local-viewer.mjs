@@ -127,6 +127,19 @@ const server = createServer(async (request, response) => {
             return;
         }
 
+        if (pathname === '/debug-config.json') {
+            sendText(
+                response,
+                200,
+                JSON.stringify({
+                    xmindFile,
+                    fileName: path.basename(xmindFile),
+                }),
+                'application/json; charset=utf-8'
+            );
+            return;
+        }
+
         if (pathname === '/file.xmind') {
             await sendFile(response, xmindFile, {
                 'content-disposition': 'inline; filename="debug.xmind"',

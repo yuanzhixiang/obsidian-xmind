@@ -36,6 +36,13 @@
     height: 100%;
     overflow: hidden;
     background: #ffffff;
+    cursor: default;
+    overscroll-behavior: contain;
+    touch-action: none;
+}
+
+.xmind-native-canvas.is-right-dragging {
+    cursor: grabbing;
 }
 
 .xmind-native-svg {
@@ -47,11 +54,35 @@
 
 .xmind-collapse-extend {
     cursor: pointer;
+    opacity: 1;
+    transition: opacity 120ms ease;
 }
 
 .xmind-collapse-extend text {
     pointer-events: none;
     user-select: none;
+}
+
+.xmind-collapse-extend.is-collapse {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.xmind-branch-hover-target {
+    cursor: default;
+}
+
+.xmind-topic:hover .xmind-collapse-extend.is-collapse,
+.xmind-topic.is-branch-hovered .xmind-collapse-extend.is-collapse,
+.xmind-topic:focus-within .xmind-collapse-extend.is-collapse,
+.xmind-collapse-extend.is-collapse:focus {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.xmind-collapse-extend.is-count,
+.xmind-collapse-extend.is-ellipsis {
+    opacity: 1;
 }
 
 .xmind-collapse-extend:focus-visible circle {

@@ -1,6 +1,9 @@
 const viewerHost = document.querySelector('#viewerHost');
 const eventLog = document.querySelector('#eventLog');
 const statusDot = document.querySelector('#statusDot');
+const fileLabel = document.querySelector('#fileLabel');
+const fileInput = document.querySelector('#fileInput');
+const openFileButton = document.querySelector('#openFileButton');
 const reloadButton = document.querySelector('#reloadButton');
 const fitButton = document.querySelector('#fitButton');
 const zoomButton = document.querySelector('#zoomButton');
@@ -10,6 +13,10 @@ const clearLogButton = document.querySelector('#clearLogButton');
 
 let viewer = null;
 let loadRun = 0;
+let activeFileSource = {
+    kind: 'server',
+    label: '默认调试文件',
+};
 
 function setStatus(status) {
     statusDot.classList.toggle('is-ready', status === 'ready');
@@ -61,6 +68,55 @@ function updateSheets(sheets) {
     }
 }
 
+function setActiveFileSource(source) {
+    activeFileSource = source;
+    fileLabel.textContent = source.label;
+}
+
+async function loadDebugConfig() {
+    const response = await fetch('/debug-config.json', {
+        cache: 'no-store',
+    });
+    if (!response.ok) {
+        throw new Error(`读取调试配置失败：HTTP ${response.status}`);
+    }
+
+    const config = await response.json();
+    setActiveFileSource({
+        kind: 'server',
+        label: String(config.xmindFile || '默认调试文件'),
+    });
+}
+
+function formatFileLabel(file) {
+    if (file.name) {
+        return file.name;
+    }
+
+    return '本地选择的 XMind 文件';
+}
+
+async function readActiveFile(source, runId) {
+    if (source.kind === 'local') {
+        const file = await source.file.arrayBuffer();
+        log('local-file-read', {
+            name: formatFileLabel(source.file),
+            bytes: file.byteLength,
+        });
+        return file;
+    }
+
+    const response = await fetch(`/file.xmind?run=${runId}`, {
+        cache: 'no-store',
+    });
+    if (!response.ok) {
+        throw new Error(`读取 XMind 文件失败：HTTP ${response.status}`);
+    }
+    const file = await response.arrayBuffer();
+    log('file-read', file);
+    return file;
+}
+
 async function preprocessLocalXMindFile(file) {
     if (!window.XMindDebugViewer) {
         throw new Error('源码 viewer 调试运行时未加载');
@@ -94,19 +150,17 @@ function handleViewerStateChange(state, event) {
 
 async function loadViewer() {
     const runId = ++loadRun;
+    const source = activeFileSource;
     viewer?.destroy();
     viewer = null;
     setStatus('loading');
-    log('load-start');
-
-    const response = await fetch(`/file.xmind?run=${runId}`, {
-        cache: 'no-store',
+    fileLabel.textContent = source.label;
+    log('load-start', {
+        source: source.kind,
+        label: source.label,
     });
-    if (!response.ok) {
-        throw new Error(`读取 XMind 文件失败：HTTP ${response.status}`);
-    }
-    const file = await response.arrayBuffer();
-    log('file-read', file);
+
+    const file = await readActiveFile(source, runId);
     const loadedFile = await preprocessLocalXMindFile(file);
 
     viewer = new window.XMindDebugViewer.XMindRenderAdapter({
@@ -131,6 +185,23 @@ async function guarded(action) {
     }
 }
 
+openFileButton.addEventListener('click', () => {
+    fileInput.click();
+});
+fileInput.addEventListener('change', () => {
+    const file = fileInput.files && fileInput.files[0];
+    if (!file) {
+        return;
+    }
+
+    setActiveFileSource({
+        kind: 'local',
+        file,
+        label: formatFileLabel(file),
+    });
+    fileInput.value = '';
+    guarded(loadViewer);
+});
 reloadButton.addEventListener('click', () => guarded(loadViewer));
 fitButton.addEventListener('click', () => guarded(() => viewer?.fitMap()));
 zoomButton.addEventListener('click', () =>
@@ -160,4 +231,7 @@ window.addEventListener('unhandledrejection', (event) => {
     );
 });
 
-guarded(loadViewer);
+guarded(async () => {
+    await loadDebugConfig();
+    await loadViewer();
+});

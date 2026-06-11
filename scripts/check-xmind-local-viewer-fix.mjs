@@ -224,17 +224,59 @@ const checks = [
             layout.includes('RIGHT_SIDE_ROOT_STRUCTURES') &&
             layout.includes('DEFAULT_COMPACT_DEPTH') &&
             layout.includes('expandedTopicIds') &&
+            layout.includes('collapsedTopicIds') &&
             layout.includes('canToggleChildren') &&
             layout.includes('isExpanded') &&
+            layout.includes('hasHiddenChildren') &&
+            layout.includes('toggleControlKind') &&
+            layout.includes('toggleControlX') &&
             layout.includes('hiddenDescendantCount') &&
+            layout.includes('hiddenDescendantCount > 999') &&
+            !layout.includes("isManuallyCollapsed ? 'ellipsis' : 'count'") &&
             layout.includes('placeRightSideRootChildren') &&
             svgRenderer.includes('renderNativeMindMap') &&
             svgRenderer.includes('appendToggleControl') &&
             svgRenderer.includes('onToggleTopic') &&
             svgRenderer.includes('collapse-extend-hover-area') &&
+            svgRenderer.includes('is-count') &&
+            svgRenderer.includes('is-ellipsis') &&
+            svgRenderer.includes('is-collapse') &&
+            svgRenderer.includes('xmind-branch-hover-target') &&
+            svgRenderer.includes('is-branch-hovered') &&
+            svgRenderer.includes('branch-collapse-hover-target') &&
+            svgRenderer.includes('setBranchHoverState') &&
+            svgRenderer.includes('pointerenter') &&
+            svgRenderer.includes('toggleControlText') &&
+            svgRenderer.includes('> 999') &&
             svgRenderer.includes('tabindex') &&
             svgRenderer.includes('hiddenDescendantCount') &&
             renderAdapter.includes('expandedTopicIdsBySheet') &&
+            renderAdapter.includes('collapsedTopicIdsBySheet') &&
+            renderAdapter.includes('panOffsetX') &&
+            renderAdapter.includes('panOffsetY') &&
+            renderAdapter.includes('handleWheel') &&
+            renderAdapter.includes("addEventListener('wheel'") &&
+            renderAdapter.includes('passive: false') &&
+            renderAdapter.includes('normalizeWheelDelta') &&
+            renderAdapter.includes('ctrlKey') &&
+            renderAdapter.includes('metaKey') &&
+            renderAdapter.includes('isZoomWheelEvent') &&
+            renderAdapter.includes('WHEEL_ZOOM_SENSITIVITY = 0.004') &&
+            renderAdapter.includes('RightDragState') &&
+            renderAdapter.includes('handlePointerDown') &&
+            renderAdapter.includes('handlePointerMove') &&
+            renderAdapter.includes('handlePointerUp') &&
+            renderAdapter.includes('handleContextMenu') &&
+            renderAdapter.includes("event.button !== 2") &&
+            renderAdapter.includes('setPointerCapture') &&
+            renderAdapter.includes('releasePointerCapture') &&
+            renderAdapter.includes('is-right-dragging') &&
+            renderAdapter.includes('setZoomAt') &&
+            renderAdapter.includes('getBaseOffset') &&
+            renderAdapter.includes('captureViewportAnchor') &&
+            renderAdapter.includes('restoreViewportAnchor') &&
+            renderAdapter.includes('preserveViewport') &&
+            renderAdapter.includes('fitToView: false') &&
             renderAdapter.includes('toggleTopic') &&
             renderAdapter.includes('fitMapSync') &&
             renderAdapter.includes('setZoom') &&
@@ -258,9 +300,13 @@ const checks = [
             viewerView.includes('as Obsidian URL') &&
             viewerView.includes('from vault folder') &&
             viewerView.includes('from system root') &&
+            viewerView.includes('removeMenuItemsByTitle') &&
+            viewerView.includes('HIDDEN_PANE_MENU_TITLES') &&
+            viewerView.includes('Split right') &&
+            viewerView.includes('Split down') &&
             !viewerView.includes('Open as markdown') &&
             !viewerView.includes("type: 'markdown'") &&
-            viewerView.includes('setUseNativeMenu(false)') &&
+            !viewerView.includes('setUseNativeMenu(false)') &&
             viewerView.includes('event.preventDefault()') &&
             viewerView.includes('menu.hide()'),
     },
@@ -269,10 +315,18 @@ const checks = [
         pass:
             debugScript.includes('src/xmind-viewer/index.ts') &&
             debugScript.includes('/debug-runtime/xmind-viewer.js') &&
+            debugScript.includes('/debug-config.json') &&
+            debugScript.includes('fileName: path.basename(xmindFile)') &&
             debugIndex.includes('id="viewerHost"') &&
+            debugIndex.includes('id="fileInput"') &&
+            debugIndex.includes('id="openFileButton"') &&
             debugIndex.includes('/debug-runtime/xmind-viewer.js') &&
             debugApp.includes('XMindDebugViewer.XMindRenderAdapter') &&
             debugApp.includes('loadLocalXMindFile') &&
+            debugApp.includes('loadDebugConfig') &&
+            debugApp.includes('readActiveFile') &&
+            debugApp.includes('.arrayBuffer()') &&
+            debugApp.includes('fileInput.addEventListener') &&
             !debugScript.includes('native-viewer-app') &&
             !debugIndex.includes('viewerFrame') &&
             !debugApp.includes('MessageChannel'),

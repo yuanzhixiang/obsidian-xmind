@@ -18,7 +18,9 @@
 - 视图本身不提供额外 Obsidian 工具栏，保持文件视图的纯渲染体验。
 - viewer 内部提供缩放、适配画布和 sheet 标签等只读控件。
 - 视图标题显示当前文件 basename，便于 Obsidian 标签页识别。
-- 视图的 pane menu 必须保留 Obsidian 默认的 Split 操作，并补齐文件操作：
+- 视图的 pane menu 使用 Obsidian 默认菜单渲染方式，不强制改成插件自绘 DOM 菜单。
+- 视图的 pane menu 隐藏 Obsidian 默认的 `Split right` 和 `Split down` 项，避免 XMind 只读 viewer 暴露不需要的分栏入口。
+- 视图的 pane menu 补齐文件操作：
     - `Copy path`：优先使用 Obsidian 运行时支持的 submenu，包含 `as Obsidian URL`、`from vault folder`、`from system root`；如果运行时不支持 submenu，则顶层 `Copy path` 复制 vault 相对路径。
 - XMind pane menu 打开时，`Command+W`/`Ctrl+W` 只关闭菜单并阻止默认标签页关闭行为。
 - `onPaneMenu()` 的 `source` 参数按 Obsidian 运行时传入字符串处理；不在本地声明 `literal | string` 冗余 union，避免官方源码扫描产生覆盖告警。

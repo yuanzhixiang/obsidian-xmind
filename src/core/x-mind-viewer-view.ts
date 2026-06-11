@@ -4,6 +4,7 @@ import {
     IconName,
     Menu,
     MenuItem,
+    MenuSeparator,
     Notice,
     TFile,
     WorkspaceLeaf,
@@ -26,6 +27,16 @@ interface MenuItemWithSubmenu extends MenuItem {
     setSubmenu(): Menu;
 }
 
+interface MenuItemWithTitle extends MenuItem {
+    title?: string | DocumentFragment;
+}
+
+interface MenuWithItems extends Menu {
+    items?: Array<MenuItem | MenuSeparator>;
+}
+
+const HIDDEN_PANE_MENU_TITLES = new Set(['Split right', 'Split down']);
+
 function hasFullPathAdapter(adapter: unknown): adapter is FullPathAdapter {
     return (
         typeof adapter === 'object' &&
@@ -40,6 +51,55 @@ function getSubmenu(item: MenuItem): Menu | null {
     return typeof candidate.setSubmenu === 'function'
         ? candidate.setSubmenu.call(item)
         : null;
+}
+
+function getMenuItemTitle(item: MenuItem | MenuSeparator): string | null {
+    const candidate = item as Partial<MenuItemWithTitle>;
+    return typeof candidate.title === 'string' ? candidate.title : null;
+}
+
+function trimMenuSeparators(
+    items: Array<MenuItem | MenuSeparator>
+): Array<MenuItem | MenuSeparator> {
+    const trimmedItems = [...items];
+
+    while (trimmedItems[0] instanceof MenuSeparator) {
+        trimmedItems.shift();
+    }
+
+    while (
+        trimmedItems[trimmedItems.length - 1] &&
+        trimmedItems[trimmedItems.length - 1] instanceof MenuSeparator
+    ) {
+        trimmedItems.pop();
+    }
+
+    return trimmedItems.filter((item, index, allItems) => {
+        if (!(item instanceof MenuSeparator)) {
+            return true;
+        }
+
+        return !(allItems[index - 1] instanceof MenuSeparator);
+    });
+}
+
+function removeMenuItemsByTitle(menu: Menu, hiddenTitles: ReadonlySet<string>): void {
+    const candidate = menu as MenuWithItems;
+    if (!candidate.items) {
+        return;
+    }
+
+    candidate.items = trimMenuSeparators(
+        candidate.items.filter((item) => {
+            const title = getMenuItemTitle(item);
+            return title === null || !hiddenTitles.has(title);
+        })
+    );
+}
+
+function hasMenuItems(menu: Menu): boolean {
+    const candidate = menu as MenuWithItems;
+    return Boolean(candidate.items?.length);
 }
 
 export class XMindViewerView extends FileView {
@@ -67,15 +127,17 @@ export class XMindViewerView extends FileView {
     }
 
     onPaneMenu(menu: Menu, source: string): void {
-        menu.setUseNativeMenu(false);
         super.onPaneMenu(menu, source);
+        removeMenuItemsByTitle(menu, HIDDEN_PANE_MENU_TITLES);
         this.bindCloseMenuHotkey(menu);
 
         if (!this.file) {
             return;
         }
 
-        menu.addSeparator();
+        if (hasMenuItems(menu)) {
+            menu.addSeparator();
+        }
         this.addCopyPathMenuItem(menu, this.file);
     }
 

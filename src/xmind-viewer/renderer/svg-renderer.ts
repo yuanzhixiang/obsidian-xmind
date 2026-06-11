@@ -6,14 +6,17 @@ export interface NativeMindMapView {
     setTransform: (
         scale: number,
         viewportWidth: number,
-        viewportHeight: number
+        viewportHeight: number,
+        panOffsetX: number,
+        panOffsetY: number
     ) => void;
     destroy: () => void;
 }
 
 export interface NativeMindMapRenderOptions {
     expandedTopicIds?: ReadonlySet<string>;
-    onToggleTopic?: (topicId: string) => void;
+    collapsedTopicIds?: ReadonlySet<string>;
+    onToggleTopic?: (topicId: string, isExpanded: boolean) => void;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -58,8 +61,12 @@ function appendConnector(
     ownerDocument: Document,
     group: SVGGElement,
     parent: MindMapLayoutTopic,
-    child: MindMapLayoutTopic
+    child: MindMapLayoutTopic,
+    topicNodesById: ReadonlyMap<string, SVGGElement>
 ): void {
+    const connector = createSvgElement(ownerDocument, 'g');
+    connector.classList.add('xmind-connector');
+
     const path = createSvgElement(ownerDocument, 'path');
     setAttributes(path, {
         d: pathBetween(parent, child),
@@ -68,7 +75,70 @@ function appendConnector(
         'stroke-width': child.depth === 1 ? 3 : 2,
         'stroke-linecap': 'round',
     });
-    group.appendChild(path);
+    path.classList.add('xmind-connector-line');
+    connector.appendChild(path);
+
+    appendBranchHoverTarget(
+        ownerDocument,
+        connector,
+        parent,
+        child,
+        topicNodesById
+    );
+    group.appendChild(connector);
+}
+
+function setBranchHoverState(
+    topicNodesById: ReadonlyMap<string, SVGGElement>,
+    topicId: string,
+    isHovered: boolean
+): void {
+    topicNodesById.get(topicId)?.classList.toggle(
+        'is-branch-hovered',
+        isHovered
+    );
+}
+
+function appendBranchHoverTarget(
+    ownerDocument: Document,
+    connector: SVGGElement,
+    parent: MindMapLayoutTopic,
+    child: MindMapLayoutTopic,
+    topicNodesById: ReadonlyMap<string, SVGGElement>
+): void {
+    if (parent.toggleControlKind !== 'collapse') {
+        return;
+    }
+
+    const hoverTarget = createSvgElement(ownerDocument, 'path');
+    setAttributes(hoverTarget, {
+        d: pathBetween(parent, child),
+        fill: 'none',
+        stroke: '#ffffff',
+        'stroke-opacity': 0,
+        'stroke-width': 18,
+        'stroke-linecap': 'round',
+        'pointer-events': 'stroke',
+        'data-name': 'branch-collapse-hover-target',
+        'data-topic-id': parent.topic.id,
+    });
+    hoverTarget.classList.add('xmind-branch-hover-target');
+
+    const showCollapseControl = (): void =>
+        setBranchHoverState(topicNodesById, parent.topic.id, true);
+    const hideCollapseControl = (): void =>
+        setBranchHoverState(topicNodesById, parent.topic.id, false);
+
+    hoverTarget.addEventListener('pointerenter', showCollapseControl);
+    hoverTarget.addEventListener('pointerleave', hideCollapseControl);
+    hoverTarget.addEventListener('mouseenter', showCollapseControl);
+    hoverTarget.addEventListener('mouseleave', hideCollapseControl);
+    hoverTarget.addEventListener('mouseover', showCollapseControl);
+    hoverTarget.addEventListener('mouseout', hideCollapseControl);
+    hoverTarget.addEventListener('focus', showCollapseControl);
+    hoverTarget.addEventListener('blur', hideCollapseControl);
+
+    connector.appendChild(hoverTarget);
 }
 
 function branchColor(topic: MindMapLayoutTopic): string {
@@ -110,32 +180,53 @@ function textFill(topic: MindMapLayoutTopic): string {
 }
 
 function toggleControlLabel(topic: MindMapLayoutTopic): string {
-    if (topic.isExpanded) {
+    if (topic.toggleControlKind === 'collapse') {
         return `折叠 ${topic.topic.title}`;
     }
 
     return `展开 ${topic.topic.title} 的 ${topic.hiddenDescendantCount} 个隐藏子节点`;
 }
 
+function toggleControlText(topic: MindMapLayoutTopic): string {
+    if (topic.toggleControlKind === 'collapse') {
+        return '-';
+    }
+
+    if (topic.toggleControlKind === 'ellipsis') {
+        return '...';
+    }
+
+    return topic.hiddenDescendantCount > 999
+        ? '...'
+        : String(topic.hiddenDescendantCount);
+}
+
+function toggleControlClassName(topic: MindMapLayoutTopic): string {
+    if (topic.toggleControlKind === 'count') {
+        return 'is-count';
+    }
+
+    if (topic.toggleControlKind === 'ellipsis') {
+        return 'is-ellipsis';
+    }
+
+    return 'is-collapse';
+}
+
 function appendToggleControl(
     ownerDocument: Document,
     node: SVGGElement,
     topic: MindMapLayoutTopic,
-    onToggleTopic?: (topicId: string) => void
+    onToggleTopic?: (topicId: string, isExpanded: boolean) => void
 ): void {
-    if (
-        !topic.canToggleChildren ||
-        (!topic.isExpanded && topic.hiddenDescendantCount <= 0)
-    ) {
+    if (!topic.canToggleChildren || !topic.toggleControlKind) {
         return;
     }
 
     const direction = topic.direction || 1;
     const marker = createSvgElement(ownerDocument, 'g');
-    const x = direction * (topic.width / 2 + 14);
-    const y = -topic.height / 2 + 4;
     setAttributes(marker, {
-        transform: `translate(${x} ${y})`,
+        transform: `translate(${topic.toggleControlX} ${topic.toggleControlY})`,
         role: 'button',
         tabindex: 0,
         focusable: 'true',
@@ -143,13 +234,28 @@ function appendToggleControl(
         'data-name': 'collapse-extend-hover-area',
         'data-topic-id': topic.topic.id,
     });
-    marker.classList.add('xmind-collapse-extend');
+    marker.classList.add(
+        'xmind-collapse-extend',
+        toggleControlClassName(topic)
+    );
+
+    const connector = createSvgElement(ownerDocument, 'line');
+    setAttributes(connector, {
+        x1: -direction * 14,
+        y1: 0,
+        x2: -direction * 10.4,
+        y2: 0,
+        stroke: branchColor(topic),
+        'stroke-width': 1.8,
+        'stroke-linecap': 'round',
+    });
+    marker.appendChild(connector);
 
     const circle = createSvgElement(ownerDocument, 'circle');
     setAttributes(circle, {
         cx: 0,
         cy: 0,
-        r: 10,
+        r: 11,
         fill: '#ffffff',
         stroke: branchColor(topic),
         'stroke-width': 1.8,
@@ -159,7 +265,7 @@ function appendToggleControl(
     const text = createSvgElement(ownerDocument, 'text');
     setAttributes(text, {
         x: 0,
-        y: 4,
+        y: topic.toggleControlKind === 'ellipsis' ? 3 : 4,
         'text-anchor': 'middle',
         fill: branchColor(topic),
         'font-size': 10,
@@ -167,18 +273,14 @@ function appendToggleControl(
         'font-family':
             '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     });
-    text.textContent = topic.isExpanded
-        ? '-'
-        : topic.hiddenDescendantCount > 99
-          ? '99+'
-          : String(topic.hiddenDescendantCount);
+    text.textContent = toggleControlText(topic);
     marker.appendChild(text);
 
     if (onToggleTopic) {
         const toggle = (event: Event): void => {
             event.preventDefault();
             event.stopPropagation();
-            onToggleTopic(topic.topic.id);
+            onToggleTopic(topic.topic.id, topic.isExpanded);
         };
         marker.addEventListener('click', toggle);
         marker.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -195,12 +297,17 @@ function appendTopic(
     ownerDocument: Document,
     group: SVGGElement,
     topic: MindMapLayoutTopic,
-    onToggleTopic?: (topicId: string) => void
-): void {
+    onToggleTopic?: (topicId: string, isExpanded: boolean) => void
+): SVGGElement {
     const node = createSvgElement(ownerDocument, 'g');
     setAttributes(node, {
         transform: `translate(${topic.x} ${topic.y})`,
+        'data-topic-id': topic.topic.id,
     });
+    node.classList.add('xmind-topic');
+    if (topic.isExpanded) {
+        node.classList.add('is-expanded');
+    }
 
     const rect = createSvgElement(ownerDocument, 'rect');
     setAttributes(rect, {
@@ -238,6 +345,7 @@ function appendTopic(
     node.appendChild(text);
     appendToggleControl(ownerDocument, node, topic, onToggleTopic);
     group.appendChild(node);
+    return node;
 }
 
 function walkTopics(
@@ -258,11 +366,13 @@ export function renderNativeMindMap(
     const ownerDocument = container.ownerDocument;
     const layout = layoutMindMap(sheet, {
         expandedTopicIds: options.expandedTopicIds,
+        collapsedTopicIds: options.collapsedTopicIds,
     });
     const svg = createSvgElement(ownerDocument, 'svg');
     const viewport = createSvgElement(ownerDocument, 'g');
     const connectorGroup = createSvgElement(ownerDocument, 'g');
     const topicGroup = createSvgElement(ownerDocument, 'g');
+    const topicNodesById = new Map<string, SVGGElement>();
 
     setAttributes(svg, {
         width: '100%',
@@ -272,14 +382,23 @@ export function renderNativeMindMap(
     });
     svg.classList.add('xmind-native-svg');
 
+    walkTopics(layout.root, (topic) =>
+        topicNodesById.set(
+            topic.topic.id,
+            appendTopic(ownerDocument, topicGroup, topic, options.onToggleTopic)
+        )
+    );
     walkTopics(layout.root, (topic) => {
         for (const child of topic.children) {
-            appendConnector(ownerDocument, connectorGroup, topic, child);
+            appendConnector(
+                ownerDocument,
+                connectorGroup,
+                topic,
+                child,
+                topicNodesById
+            );
         }
     });
-    walkTopics(layout.root, (topic) =>
-        appendTopic(ownerDocument, topicGroup, topic, options.onToggleTopic)
-    );
 
     viewport.appendChild(connectorGroup);
     viewport.appendChild(topicGroup);
@@ -288,11 +407,17 @@ export function renderNativeMindMap(
 
     return {
         bounds: layout.bounds,
-        setTransform(scale, viewportWidth, viewportHeight): void {
+        setTransform(
+            scale,
+            viewportWidth,
+            viewportHeight,
+            panOffsetX,
+            panOffsetY
+        ): void {
             const centerX = (layout.bounds.minX + layout.bounds.maxX) / 2;
             const centerY = (layout.bounds.minY + layout.bounds.maxY) / 2;
-            const offsetX = viewportWidth / 2 - centerX * scale;
-            const offsetY = viewportHeight / 2 - centerY * scale;
+            const offsetX = viewportWidth / 2 - centerX * scale + panOffsetX;
+            const offsetY = viewportHeight / 2 - centerY * scale + panOffsetY;
             viewport.setAttribute(
                 'transform',
                 `translate(${offsetX} ${offsetY}) scale(${scale})`

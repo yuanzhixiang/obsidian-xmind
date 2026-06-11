@@ -12,11 +12,16 @@
 - 正式源码不得创建动态 `<script>`、动态 `<style>`，不得写 `innerHTML`/`outerHTML`，不得直接设置 `element.style`。
 - `.xmind` 解析必须由 `xmind-document.ts` 和 `xmind-zip.ts` 完成，中心主题兼容修复继续在 `theme-loader.ts`。
 - `package.json` 的运行依赖只保留源码 viewer 实际使用的 `fflate@0.8.3`，不得恢复 JSZip。
-- 布局层必须保留 right/clockwise 根结构识别、二级可见层级限制和隐藏子树数量计算。
-- 渲染层必须保留默认紧凑视图和数量展开控件，避免再次把大文件的全部 topic 一次性展开成挤压画面。
+- 布局层必须保留 right/clockwise 根结构识别、默认紧凑深度、会话内展开/收起状态和隐藏子树数量计算。
+- 布局结果必须提供 `hasHiddenChildren`、`toggleControlKind`、`toggleControlX` 等稳定 UI 字段，避免渲染层重新推导业务状态。
+- 渲染层必须保留默认紧凑视图、常驻数字展开控件、`> 999` 隐藏数量的 `...` 控件，以及 topic hover/focus 和连接线 hover 才显示的减号收起控件。
+- 连接线 hover 必须通过透明命中区和父 topic id 定位对应减号，不能只依赖 `.xmind-topic:hover`。
+- 隐藏数量显示规则必须保留为 `0-999` 显示数字、`> 999` 显示 `...`。
+- 渲染适配器必须保留画布手势：普通 wheel 用 `panOffsetX/Y` 平移，`ctrlKey + wheel` 和 `Command/metaKey + wheel` 用焦点缩放，右键拖拽用 `panOffsetX/Y` 平移，wheel 监听使用 `{ passive: false }`。
+- 展开/收起 topic 必须保留当前 zoom 和视口锚点，不能重新调用适配缩放；pinch 缩放灵敏度保持轻阻力口径。
 - Obsidian 视图必须只导入 `src/xmind-viewer/` 稳定入口，不得直接依赖 assets 目录。
-- XMind pane menu 必须提供 `Copy path`，不得提供会把 `.xmind` 原文件交给 markdown view 的入口，并在菜单打开时拦截 `Mod+W` 关闭菜单。
-- debug viewer 必须复用同一份 `src/xmind-viewer/index.ts` 源码 API。
+- XMind pane menu 必须提供 `Copy path`，不得提供会把 `.xmind` 原文件交给 markdown view 的入口，不得强制插件自绘 DOM 菜单，必须隐藏 `Split right` / `Split down`，并在菜单打开时拦截 `Mod+W` 关闭菜单。
+- debug viewer 必须复用同一份 `src/xmind-viewer/index.ts` 源码 API，并支持页面内选择其它本地 `.xmind` 文件测试。
 - README 必须包含官方要求的安装和使用说明。
 - GitHub Release workflow 必须只上传 `main.js`、`manifest.json`、`styles.css`，并为三件套生成 artifact attestations。
 

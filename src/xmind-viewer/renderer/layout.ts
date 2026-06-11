@@ -6,6 +6,8 @@ export interface MindMapTextLine {
     y: number;
 }
 
+export type MindMapToggleControlKind = 'count' | 'ellipsis' | 'collapse';
+
 export interface MindMapLayoutTopic {
     topic: XMindTopicNode;
     x: number;
@@ -18,6 +20,10 @@ export interface MindMapLayoutTopic {
     hiddenDescendantCount: number;
     canToggleChildren: boolean;
     isExpanded: boolean;
+    hasHiddenChildren: boolean;
+    toggleControlX: number;
+    toggleControlY: number;
+    toggleControlKind: MindMapToggleControlKind | null;
     lines: MindMapTextLine[];
     children: MindMapLayoutTopic[];
 }
@@ -36,6 +42,7 @@ export interface MindMapLayout {
 
 export interface MindMapLayoutOptions {
     expandedTopicIds?: ReadonlySet<string>;
+    collapsedTopicIds?: ReadonlySet<string>;
 }
 
 interface DraftTopic {
@@ -47,11 +54,15 @@ interface DraftTopic {
     hiddenDescendantCount: number;
     canToggleChildren: boolean;
     isExpanded: boolean;
+    hasHiddenChildren: boolean;
+    toggleControlX: number;
+    toggleControlY: number;
+    toggleControlKind: MindMapToggleControlKind | null;
     subtreeHeight: number;
     children: DraftTopic[];
 }
 
-const DEFAULT_COMPACT_DEPTH = 2;
+export const DEFAULT_COMPACT_DEPTH = 2;
 const RIGHT_SIDE_ROOT_STRUCTURES = new Set([
     'org.xmind.ui.map.clockwise',
     'org.xmind.ui.logic.right',
@@ -117,31 +128,52 @@ function getVisibleChildren(
     topic: XMindTopicNode,
     depth: number,
     expandedTopicIds: ReadonlySet<string>,
-    forceExpanded: boolean
+    collapsedTopicIds: ReadonlySet<string>
 ): XMindTopicNode[] {
-    if (
-        forceExpanded ||
-        expandedTopicIds.has(topic.id) ||
-        depth < DEFAULT_COMPACT_DEPTH
-    ) {
+    if (collapsedTopicIds.has(topic.id)) {
+        return [];
+    }
+
+    if (expandedTopicIds.has(topic.id) || depth < DEFAULT_COMPACT_DEPTH) {
         return topic.children;
     }
 
     return [];
 }
 
+function getToggleControlKind(
+    isExpanded: boolean,
+    hiddenDescendantCount: number
+): MindMapToggleControlKind | null {
+    if (isExpanded) {
+        return 'collapse';
+    }
+
+    if (hiddenDescendantCount > 999) {
+        return 'ellipsis';
+    }
+
+    if (hiddenDescendantCount > 0) {
+        return 'count';
+    }
+
+    return null;
+}
+
 function createDraft(
     topic: XMindTopicNode,
     depth: number,
     expandedTopicIds: ReadonlySet<string>,
-    branchIndex = 0,
-    forceExpanded = false
+    collapsedTopicIds: ReadonlySet<string>,
+    branchIndex = 0
 ): DraftTopic {
     const isRoot = depth === 0;
-    const isExpanded = expandedTopicIds.has(topic.id);
-    const showFullSubtree = forceExpanded || isExpanded;
-    const canToggleChildren =
-        depth >= DEFAULT_COMPACT_DEPTH && topic.children.length > 0;
+    const canToggleChildren = !isRoot && topic.children.length > 0;
+    const isManuallyCollapsed = collapsedTopicIds.has(topic.id);
+    const isExpanded =
+        canToggleChildren &&
+        !isManuallyCollapsed &&
+        (expandedTopicIds.has(topic.id) || depth < DEFAULT_COMPACT_DEPTH);
     const horizontalPadding = isRoot
         ? ROOT_HORIZONTAL_PADDING
         : HORIZONTAL_PADDING;
@@ -162,19 +194,22 @@ function createDraft(
         topic,
         depth,
         expandedTopicIds,
-        forceExpanded
+        collapsedTopicIds
     ).map((child, index) =>
         createDraft(
             child,
             depth + 1,
             expandedTopicIds,
-            depth === 0 ? index : branchIndex,
-            showFullSubtree
+            collapsedTopicIds,
+            depth === 0 ? index : branchIndex
         )
     );
     const childrenHeight =
         children.reduce((sum, child) => sum + child.subtreeHeight, 0) +
         Math.max(0, children.length - 1) * VERTICAL_GAP;
+    const hiddenDescendantCount =
+        canToggleChildren && !isExpanded ? countDescendants(topic) : 0;
+    const hasHiddenChildren = hiddenDescendantCount > 0;
 
     return {
         topic,
@@ -182,10 +217,16 @@ function createDraft(
         height,
         lines,
         branchIndex,
-        hiddenDescendantCount:
-            canToggleChildren && !showFullSubtree ? countDescendants(topic) : 0,
+        hiddenDescendantCount,
         canToggleChildren,
         isExpanded,
+        hasHiddenChildren,
+        toggleControlX: 0,
+        toggleControlY: 0,
+        toggleControlKind: getToggleControlKind(
+            isExpanded,
+            hiddenDescendantCount
+        ),
         subtreeHeight: Math.max(height, childrenHeight),
         children,
     };
@@ -255,16 +296,17 @@ function placeDraft(
         hiddenDescendantCount: draft.hiddenDescendantCount,
         canToggleChildren: draft.canToggleChildren,
         isExpanded: draft.isExpanded,
+        hasHiddenChildren: draft.hasHiddenChildren,
+        toggleControlX: direction * (draft.width / 2 + 14),
+        toggleControlY: 0,
+        toggleControlKind: draft.toggleControlKind,
         lines: createTextLines(draft.lines, lineHeight),
         children,
     };
 }
 
 function collectBounds(topic: MindMapLayoutTopic, bounds: MindMapBounds): void {
-    const markerOutset =
-        topic.hiddenDescendantCount > 0 || topic.isExpanded
-            ? SUMMARY_MARKER_OUTSET
-            : 0;
+    const markerOutset = topic.toggleControlKind ? SUMMARY_MARKER_OUTSET : 0;
     const minX =
         topic.x - topic.width / 2 - (topic.direction < 0 ? markerOutset : 0);
     const maxX =
@@ -339,7 +381,8 @@ export function layoutMindMap(
     const rootDraft = createDraft(
         sheet.rootTopic,
         0,
-        options.expandedTopicIds ?? new Set<string>()
+        options.expandedTopicIds ?? new Set<string>(),
+        options.collapsedTopicIds ?? new Set<string>()
     );
     const root: MindMapLayoutTopic = {
         topic: rootDraft.topic,
@@ -353,6 +396,10 @@ export function layoutMindMap(
         hiddenDescendantCount: 0,
         canToggleChildren: rootDraft.canToggleChildren,
         isExpanded: rootDraft.isExpanded,
+        hasHiddenChildren: rootDraft.hasHiddenChildren,
+        toggleControlX: 0,
+        toggleControlY: 0,
+        toggleControlKind: null,
         lines: createTextLines(rootDraft.lines, ROOT_LINE_HEIGHT),
         children: [],
     };
