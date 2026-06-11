@@ -14,6 +14,7 @@
 
 - 视图实现位于 `src/core/x-mind-viewer-view.ts`。
 - viewer 运行逻辑由 `src/xmind-viewer/` 的直接源码模块承担。
+- XMind 文件的 pane menu 行为由 `XMindViewerView.onPaneMenu()` 维护，插件入口只负责注册视图和扩展名。
 
 ## 限制
 
