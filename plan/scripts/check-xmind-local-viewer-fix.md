@@ -13,7 +13,7 @@
 - `.xmind` 解析必须由 `xmind-document.ts` 和 `xmind-zip.ts` 完成，中心主题兼容修复继续在 `theme-loader.ts`。
 - `package.json` 的运行依赖只保留源码 viewer 实际使用的 `fflate@0.8.3`，不得恢复 JSZip。
 - 布局层必须保留 right/clockwise 根结构识别、二级可见层级限制和隐藏子树数量计算。
-- 渲染层必须保留二级主题数量徽标，避免再次把大文件的全部 274 个 topic 展开成挤压画面。
+- 渲染层必须保留默认紧凑视图和数量展开控件，避免再次把大文件的全部 topic 一次性展开成挤压画面。
 - Obsidian 视图必须只导入 `src/xmind-viewer/` 稳定入口，不得直接依赖 assets 目录。
 - XMind pane menu 必须提供 `Copy path`，不得提供会把 `.xmind` 原文件交给 markdown view 的入口，并在菜单打开时拦截 `Mod+W` 关闭菜单。
 - debug viewer 必须复用同一份 `src/xmind-viewer/index.ts` 源码 API。

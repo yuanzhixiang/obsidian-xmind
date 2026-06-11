@@ -52,6 +52,7 @@ export class XMindRenderAdapter {
     private readonly unsubscribeInitialStateListener?: () => void;
     private documentModel: XMindDocument | null = null;
     private view: NativeMindMapView | null = null;
+    private readonly expandedTopicIdsBySheet = new Map<string, Set<string>>();
     private zoomScale = DEFAULT_ZOOM;
     private fitMode = true;
     private destroyed = false;
@@ -190,6 +191,7 @@ export class XMindRenderAdapter {
     private async openFile(file: ArrayBuffer): Promise<void> {
         this.status.textContent = '正在读取 XMind 文件...';
         this.documentModel = await parseXMindDocument(file);
+        this.expandedTopicIdsBySheet.clear();
         this.emit(
             'sheets-load',
             this.documentModel.sheets.map((sheet) => ({
@@ -211,10 +213,48 @@ export class XMindRenderAdapter {
 
         this.status.textContent = '';
         this.sheetLabel.textContent = sheet.title;
-        this.view?.destroy();
-        this.view = renderNativeMindMap(this.canvas, sheet);
-        this.fitMapSync();
+        this.renderSheet(sheet);
         this.emit('sheet-switch', sheet.id);
+    }
+
+    private renderSheet(sheet: NonNullable<XMindDocument['sheets'][number]>): void {
+        this.view?.destroy();
+        this.view = renderNativeMindMap(this.canvas, sheet, {
+            expandedTopicIds: this.getExpandedTopicIds(sheet.id),
+            onToggleTopic: (topicId): void => {
+                this.toggleTopic(sheet.id, topicId);
+            },
+        });
+        this.fitMapSync();
+    }
+
+    private getExpandedTopicIds(sheetId: string): Set<string> {
+        const existing = this.expandedTopicIdsBySheet.get(sheetId);
+        if (existing) {
+            return existing;
+        }
+
+        const expandedTopicIds = new Set<string>();
+        this.expandedTopicIdsBySheet.set(sheetId, expandedTopicIds);
+        return expandedTopicIds;
+    }
+
+    private toggleTopic(sheetId: string, topicId: string): void {
+        const sheet = this.documentModel?.sheets.find(
+            (item) => item.id === sheetId
+        );
+        if (!sheet || this.destroyed) {
+            return;
+        }
+
+        const expandedTopicIds = this.getExpandedTopicIds(sheetId);
+        if (expandedTopicIds.has(topicId)) {
+            expandedTopicIds.delete(topicId);
+        } else {
+            expandedTopicIds.add(topicId);
+        }
+
+        this.renderSheet(sheet);
     }
 
     private fitMapSync(): void {

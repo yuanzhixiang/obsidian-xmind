@@ -11,6 +11,11 @@ export interface NativeMindMapView {
     destroy: () => void;
 }
 
+export interface NativeMindMapRenderOptions {
+    expandedTopicIds?: ReadonlySet<string>;
+    onToggleTopic?: (topicId: string) => void;
+}
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const BRANCH_COLORS = ['#ff4d5a', '#ff884d', '#8b6fef', '#00a88f'];
 const BRANCH_LIGHT_COLORS = ['#ffe0e2', '#ffe9dc', '#ebe7ff', '#dff7f1'];
@@ -104,12 +109,24 @@ function textFill(topic: MindMapLayoutTopic): string {
     return TEXT_DARK;
 }
 
-function appendSummaryMarker(
+function toggleControlLabel(topic: MindMapLayoutTopic): string {
+    if (topic.isExpanded) {
+        return `折叠 ${topic.topic.title}`;
+    }
+
+    return `展开 ${topic.topic.title} 的 ${topic.hiddenDescendantCount} 个隐藏子节点`;
+}
+
+function appendToggleControl(
     ownerDocument: Document,
     node: SVGGElement,
-    topic: MindMapLayoutTopic
+    topic: MindMapLayoutTopic,
+    onToggleTopic?: (topicId: string) => void
 ): void {
-    if (topic.hiddenDescendantCount <= 0 || topic.depth < 2) {
+    if (
+        !topic.canToggleChildren ||
+        (!topic.isExpanded && topic.hiddenDescendantCount <= 0)
+    ) {
         return;
     }
 
@@ -119,7 +136,14 @@ function appendSummaryMarker(
     const y = -topic.height / 2 + 4;
     setAttributes(marker, {
         transform: `translate(${x} ${y})`,
+        role: 'button',
+        tabindex: 0,
+        focusable: 'true',
+        'aria-label': toggleControlLabel(topic),
+        'data-name': 'collapse-extend-hover-area',
+        'data-topic-id': topic.topic.id,
     });
+    marker.classList.add('xmind-collapse-extend');
 
     const circle = createSvgElement(ownerDocument, 'circle');
     setAttributes(circle, {
@@ -143,18 +167,35 @@ function appendSummaryMarker(
         'font-family':
             '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
     });
-    text.textContent =
-        topic.hiddenDescendantCount > 99
-            ? '99+'
-            : String(topic.hiddenDescendantCount);
+    text.textContent = topic.isExpanded
+        ? '-'
+        : topic.hiddenDescendantCount > 99
+          ? '99+'
+          : String(topic.hiddenDescendantCount);
     marker.appendChild(text);
+
+    if (onToggleTopic) {
+        const toggle = (event: Event): void => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleTopic(topic.topic.id);
+        };
+        marker.addEventListener('click', toggle);
+        marker.addEventListener('keydown', (event: KeyboardEvent) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                toggle(event);
+            }
+        });
+    }
+
     node.appendChild(marker);
 }
 
 function appendTopic(
     ownerDocument: Document,
     group: SVGGElement,
-    topic: MindMapLayoutTopic
+    topic: MindMapLayoutTopic,
+    onToggleTopic?: (topicId: string) => void
 ): void {
     const node = createSvgElement(ownerDocument, 'g');
     setAttributes(node, {
@@ -195,7 +236,7 @@ function appendTopic(
     }
 
     node.appendChild(text);
-    appendSummaryMarker(ownerDocument, node, topic);
+    appendToggleControl(ownerDocument, node, topic, onToggleTopic);
     group.appendChild(node);
 }
 
@@ -211,10 +252,13 @@ function walkTopics(
 
 export function renderNativeMindMap(
     container: HTMLElement,
-    sheet: XMindDocumentSheet
+    sheet: XMindDocumentSheet,
+    options: NativeMindMapRenderOptions = {}
 ): NativeMindMapView {
     const ownerDocument = container.ownerDocument;
-    const layout = layoutMindMap(sheet);
+    const layout = layoutMindMap(sheet, {
+        expandedTopicIds: options.expandedTopicIds,
+    });
     const svg = createSvgElement(ownerDocument, 'svg');
     const viewport = createSvgElement(ownerDocument, 'g');
     const connectorGroup = createSvgElement(ownerDocument, 'g');
@@ -234,7 +278,7 @@ export function renderNativeMindMap(
         }
     });
     walkTopics(layout.root, (topic) =>
-        appendTopic(ownerDocument, topicGroup, topic)
+        appendTopic(ownerDocument, topicGroup, topic, options.onToggleTopic)
     );
 
     viewport.appendChild(connectorGroup);

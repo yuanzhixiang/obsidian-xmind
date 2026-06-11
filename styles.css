@@ -45,6 +45,19 @@
     background: #ffffff;
 }
 
+.xmind-collapse-extend {
+    cursor: pointer;
+}
+
+.xmind-collapse-extend text {
+    pointer-events: none;
+    user-select: none;
+}
+
+.xmind-collapse-extend:focus-visible circle {
+    stroke-width: 2.6;
+}
+
 .xmind-native-status {
     position: absolute;
     top: 18px;

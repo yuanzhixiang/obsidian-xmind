@@ -16,6 +16,8 @@ export interface MindMapLayoutTopic {
     direction: -1 | 0 | 1;
     branchIndex: number;
     hiddenDescendantCount: number;
+    canToggleChildren: boolean;
+    isExpanded: boolean;
     lines: MindMapTextLine[];
     children: MindMapLayoutTopic[];
 }
@@ -32,6 +34,10 @@ export interface MindMapLayout {
     bounds: MindMapBounds;
 }
 
+export interface MindMapLayoutOptions {
+    expandedTopicIds?: ReadonlySet<string>;
+}
+
 interface DraftTopic {
     topic: XMindTopicNode;
     width: number;
@@ -39,11 +45,13 @@ interface DraftTopic {
     lines: string[];
     branchIndex: number;
     hiddenDescendantCount: number;
+    canToggleChildren: boolean;
+    isExpanded: boolean;
     subtreeHeight: number;
     children: DraftTopic[];
 }
 
-const MAX_VISIBLE_DEPTH = 2;
+const DEFAULT_COMPACT_DEPTH = 2;
 const RIGHT_SIDE_ROOT_STRUCTURES = new Set([
     'org.xmind.ui.map.clockwise',
     'org.xmind.ui.logic.right',
@@ -107,17 +115,33 @@ function countDescendants(topic: XMindTopicNode): number {
 
 function getVisibleChildren(
     topic: XMindTopicNode,
-    depth: number
+    depth: number,
+    expandedTopicIds: ReadonlySet<string>,
+    forceExpanded: boolean
 ): XMindTopicNode[] {
-    return depth < MAX_VISIBLE_DEPTH ? topic.children : [];
+    if (
+        forceExpanded ||
+        expandedTopicIds.has(topic.id) ||
+        depth < DEFAULT_COMPACT_DEPTH
+    ) {
+        return topic.children;
+    }
+
+    return [];
 }
 
 function createDraft(
     topic: XMindTopicNode,
     depth: number,
-    branchIndex = 0
+    expandedTopicIds: ReadonlySet<string>,
+    branchIndex = 0,
+    forceExpanded = false
 ): DraftTopic {
     const isRoot = depth === 0;
+    const isExpanded = expandedTopicIds.has(topic.id);
+    const showFullSubtree = forceExpanded || isExpanded;
+    const canToggleChildren =
+        depth >= DEFAULT_COMPACT_DEPTH && topic.children.length > 0;
     const horizontalPadding = isRoot
         ? ROOT_HORIZONTAL_PADDING
         : HORIZONTAL_PADDING;
@@ -134,8 +158,19 @@ function createDraft(
         Math.min(MAX_NODE_WIDTH, textWidth + horizontalPadding * 2)
     );
     const height = lines.length * lineHeight + verticalPadding * 2;
-    const children = getVisibleChildren(topic, depth).map((child, index) =>
-        createDraft(child, depth + 1, depth === 0 ? index : branchIndex)
+    const children = getVisibleChildren(
+        topic,
+        depth,
+        expandedTopicIds,
+        forceExpanded
+    ).map((child, index) =>
+        createDraft(
+            child,
+            depth + 1,
+            expandedTopicIds,
+            depth === 0 ? index : branchIndex,
+            showFullSubtree
+        )
     );
     const childrenHeight =
         children.reduce((sum, child) => sum + child.subtreeHeight, 0) +
@@ -148,7 +183,9 @@ function createDraft(
         lines,
         branchIndex,
         hiddenDescendantCount:
-            depth >= MAX_VISIBLE_DEPTH ? countDescendants(topic) : 0,
+            canToggleChildren && !showFullSubtree ? countDescendants(topic) : 0,
+        canToggleChildren,
+        isExpanded,
         subtreeHeight: Math.max(height, childrenHeight),
         children,
     };
@@ -216,6 +253,8 @@ function placeDraft(
         direction,
         branchIndex: draft.branchIndex,
         hiddenDescendantCount: draft.hiddenDescendantCount,
+        canToggleChildren: draft.canToggleChildren,
+        isExpanded: draft.isExpanded,
         lines: createTextLines(draft.lines, lineHeight),
         children,
     };
@@ -223,7 +262,9 @@ function placeDraft(
 
 function collectBounds(topic: MindMapLayoutTopic, bounds: MindMapBounds): void {
     const markerOutset =
-        topic.hiddenDescendantCount > 0 ? SUMMARY_MARKER_OUTSET : 0;
+        topic.hiddenDescendantCount > 0 || topic.isExpanded
+            ? SUMMARY_MARKER_OUTSET
+            : 0;
     const minX =
         topic.x - topic.width / 2 - (topic.direction < 0 ? markerOutset : 0);
     const maxX =
@@ -291,8 +332,15 @@ function placeSplitRootChildren(
     }
 }
 
-export function layoutMindMap(sheet: XMindDocumentSheet): MindMapLayout {
-    const rootDraft = createDraft(sheet.rootTopic, 0);
+export function layoutMindMap(
+    sheet: XMindDocumentSheet,
+    options: MindMapLayoutOptions = {}
+): MindMapLayout {
+    const rootDraft = createDraft(
+        sheet.rootTopic,
+        0,
+        options.expandedTopicIds ?? new Set<string>()
+    );
     const root: MindMapLayoutTopic = {
         topic: rootDraft.topic,
         x: 0,
@@ -303,6 +351,8 @@ export function layoutMindMap(sheet: XMindDocumentSheet): MindMapLayout {
         direction: 0,
         branchIndex: 0,
         hiddenDescendantCount: 0,
+        canToggleChildren: rootDraft.canToggleChildren,
+        isExpanded: rootDraft.isExpanded,
         lines: createTextLines(rootDraft.lines, ROOT_LINE_HEIGHT),
         children: [],
     };

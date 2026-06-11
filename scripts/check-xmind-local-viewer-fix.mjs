@@ -219,15 +219,23 @@ const checks = [
             ),
     },
     {
-        name: '源码渲染器保留 clockwise、折叠数量、缩放和适配画布',
+        name: '源码渲染器保留 clockwise、展开折叠、缩放和适配画布',
         pass:
             layout.includes('RIGHT_SIDE_ROOT_STRUCTURES') &&
-            layout.includes('MAX_VISIBLE_DEPTH = 2') &&
+            layout.includes('DEFAULT_COMPACT_DEPTH') &&
+            layout.includes('expandedTopicIds') &&
+            layout.includes('canToggleChildren') &&
+            layout.includes('isExpanded') &&
             layout.includes('hiddenDescendantCount') &&
             layout.includes('placeRightSideRootChildren') &&
             svgRenderer.includes('renderNativeMindMap') &&
-            svgRenderer.includes('appendSummaryMarker') &&
+            svgRenderer.includes('appendToggleControl') &&
+            svgRenderer.includes('onToggleTopic') &&
+            svgRenderer.includes('collapse-extend-hover-area') &&
+            svgRenderer.includes('tabindex') &&
             svgRenderer.includes('hiddenDescendantCount') &&
+            renderAdapter.includes('expandedTopicIdsBySheet') &&
+            renderAdapter.includes('toggleTopic') &&
             renderAdapter.includes('fitMapSync') &&
             renderAdapter.includes('setZoom') &&
             renderAdapter.includes('applyTransform') &&
