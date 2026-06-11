@@ -9,7 +9,7 @@
 - 每个 topic 渲染为圆角矩形和居中文本。
 - 根主题使用白底蓝色描边。
 - 一级主题使用分支强调色填充，二级主题使用同色系浅色胶囊。
-- 主题存在默认紧凑隐藏子树时，在节点右侧绘制常驻数字圆圈，数值来自布局层的 `hiddenDescendantCount`。
+- 主题存在隐藏子树时，在节点右侧绘制常驻数字圆圈，数值来自布局层的 `hiddenDescendantCount`；隐藏子树可能来自文件保存的 `branch: "folded"`，也可能来自用户本次会话手动收起。
 - 数字圆圈使用 `0-999` 直接显示数字；超过三位数时显示 `...`，但 `aria-label` 仍保留真实隐藏数量。
 - 已展开 topic 的减号圆圈默认隐藏，只在该 topic group hover、对应父子连接线 hover、focus-within 或控件自身 focus 时显示；点击或键盘 `Enter`/`Space` 会触发 `onToggleTopic()` 收起。
 - 父子连接线额外绘制透明宽 stroke 命中区，只用于 hover 命中，不改变可见线条样式；命中区通过父 topic id 显示对应父节点的减号，避免 hover 到其它分支时误触发。事件同时监听 pointer 和 mouse 进入/离开，兼容不同浏览器的 SVG hover 触发路径。

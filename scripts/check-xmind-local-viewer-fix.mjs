@@ -222,7 +222,11 @@ const checks = [
         name: '源码渲染器保留 clockwise、展开折叠、缩放和适配画布',
         pass:
             layout.includes('RIGHT_SIDE_ROOT_STRUCTURES') &&
-            layout.includes('DEFAULT_COMPACT_DEPTH') &&
+            !layout.includes('DEFAULT_COMPACT_DEPTH') &&
+            layout.includes('FOLDED_TOPIC_BRANCH') &&
+            layout.includes("'folded'") &&
+            layout.includes('isTopicExpanded') &&
+            layout.includes('topic.branch !== FOLDED_TOPIC_BRANCH') &&
             layout.includes('expandedTopicIds') &&
             layout.includes('collapsedTopicIds') &&
             layout.includes('canToggleChildren') &&

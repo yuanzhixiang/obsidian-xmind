@@ -12,9 +12,9 @@
 - 正式源码不得创建动态 `<script>`、动态 `<style>`，不得写 `innerHTML`/`outerHTML`，不得直接设置 `element.style`。
 - `.xmind` 解析必须由 `xmind-document.ts` 和 `xmind-zip.ts` 完成，中心主题兼容修复继续在 `theme-loader.ts`。
 - `package.json` 的运行依赖只保留源码 viewer 实际使用的 `fflate@0.8.3`，不得恢复 JSZip。
-- 布局层必须保留 right/clockwise 根结构识别、默认紧凑深度、会话内展开/收起状态和隐藏子树数量计算。
+- 布局层必须保留 right/clockwise 根结构识别、`branch: "folded"` 文件保存状态、会话内展开/收起覆盖状态和隐藏子树数量计算，不得恢复固定两级展开口径。
 - 布局结果必须提供 `hasHiddenChildren`、`toggleControlKind`、`toggleControlX` 等稳定 UI 字段，避免渲染层重新推导业务状态。
-- 渲染层必须保留默认紧凑视图、常驻数字展开控件、`> 999` 隐藏数量的 `...` 控件，以及 topic hover/focus 和连接线 hover 才显示的减号收起控件。
+- 渲染层必须保留常驻数字展开控件、`> 999` 隐藏数量的 `...` 控件，以及 topic hover/focus 和连接线 hover 才显示的减号收起控件。
 - 连接线 hover 必须通过透明命中区和父 topic id 定位对应减号，不能只依赖 `.xmind-topic:hover`。
 - 隐藏数量显示规则必须保留为 `0-999` 显示数字、`> 999` 显示 `...`。
 - 渲染适配器必须保留画布手势：普通 wheel 用 `panOffsetX/Y` 平移，`ctrlKey + wheel` 和 `Command/metaKey + wheel` 用焦点缩放，右键拖拽用 `panOffsetX/Y` 平移，wheel 监听使用 `{ passive: false }`。

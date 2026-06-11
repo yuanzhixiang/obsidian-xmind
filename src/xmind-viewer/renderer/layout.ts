@@ -62,11 +62,11 @@ interface DraftTopic {
     children: DraftTopic[];
 }
 
-export const DEFAULT_COMPACT_DEPTH = 2;
 const RIGHT_SIDE_ROOT_STRUCTURES = new Set([
     'org.xmind.ui.map.clockwise',
     'org.xmind.ui.logic.right',
 ]);
+const FOLDED_TOPIC_BRANCH = 'folded';
 const LINE_HEIGHT = 23;
 const ROOT_LINE_HEIGHT = 32;
 const MIN_NODE_WIDTH = 104;
@@ -124,21 +124,34 @@ function countDescendants(topic: XMindTopicNode): number {
     );
 }
 
+function isTopicExpanded(
+    topic: XMindTopicNode,
+    expandedTopicIds: ReadonlySet<string>,
+    collapsedTopicIds: ReadonlySet<string>
+): boolean {
+    if (topic.children.length === 0) {
+        return false;
+    }
+
+    if (collapsedTopicIds.has(topic.id)) {
+        return false;
+    }
+
+    if (expandedTopicIds.has(topic.id)) {
+        return true;
+    }
+
+    return topic.branch !== FOLDED_TOPIC_BRANCH;
+}
+
 function getVisibleChildren(
     topic: XMindTopicNode,
-    depth: number,
     expandedTopicIds: ReadonlySet<string>,
     collapsedTopicIds: ReadonlySet<string>
 ): XMindTopicNode[] {
-    if (collapsedTopicIds.has(topic.id)) {
-        return [];
-    }
-
-    if (expandedTopicIds.has(topic.id) || depth < DEFAULT_COMPACT_DEPTH) {
-        return topic.children;
-    }
-
-    return [];
+    return isTopicExpanded(topic, expandedTopicIds, collapsedTopicIds)
+        ? topic.children
+        : [];
 }
 
 function getToggleControlKind(
@@ -169,11 +182,9 @@ function createDraft(
 ): DraftTopic {
     const isRoot = depth === 0;
     const canToggleChildren = !isRoot && topic.children.length > 0;
-    const isManuallyCollapsed = collapsedTopicIds.has(topic.id);
     const isExpanded =
         canToggleChildren &&
-        !isManuallyCollapsed &&
-        (expandedTopicIds.has(topic.id) || depth < DEFAULT_COMPACT_DEPTH);
+        isTopicExpanded(topic, expandedTopicIds, collapsedTopicIds);
     const horizontalPadding = isRoot
         ? ROOT_HORIZONTAL_PADDING
         : HORIZONTAL_PADDING;
@@ -192,7 +203,6 @@ function createDraft(
     const height = lines.length * lineHeight + verticalPadding * 2;
     const children = getVisibleChildren(
         topic,
-        depth,
         expandedTopicIds,
         collapsedTopicIds
     ).map((child, index) =>

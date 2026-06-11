@@ -10,7 +10,7 @@
 - `render-adapter.ts`：直接挂载 Obsidian 容器，解析文档、渲染 SVG、维护 sheet/zoom 状态和工具控件。
 - `xmind-zip.ts`：封装 `.xmind` zip 读写，底层使用 `fflate`，隔离压缩库替换风险。
 - `xmind-document.ts`：读取 `.xmind` zip 中的 `content.json`，提取 sheet 与 topic 树。
-- `renderer/layout.ts`：把 topic 树转换为源码布局模型，包含 right/clockwise 根结构、二级可见层级和隐藏子树数量。
+- `renderer/layout.ts`：把 topic 树转换为源码布局模型，包含 right/clockwise 根结构、XMind 保存的 `branch: "folded"` 状态和隐藏子树数量。
 - `renderer/svg-renderer.ts`：把布局模型渲染成 SVG，并提供缩放/居中 transform。
 - `viewer-events.ts`：集中维护 viewer event 类型。
 - `viewer-state.ts`：把 `map-ready`、`sheets-load`、`sheet-switch`、`zoom-change` 等事件投影成源码层状态。

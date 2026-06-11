@@ -51,7 +51,7 @@ The viewer is read-only. You can inspect the mind map, expand branches, zoom, pa
 
 ## Branches
 
-Some large branches are collapsed by default so the map opens quickly and stays readable.
+Branches that were collapsed in XMind open collapsed in XMind Maps, and expanded branches stay expanded.
 
 - Click a numbered circle beside a topic to expand that hidden branch.
 - Hover an expanded topic or its branch line to reveal the collapse control.

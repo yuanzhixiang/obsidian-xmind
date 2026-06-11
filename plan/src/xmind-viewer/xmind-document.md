@@ -17,6 +17,7 @@
 - 兼容 `{ sheets }` 和 `{ workbook: { sheets } }` 结构。
 - topic 只解析当前源码渲染需要的 `id`、`title`、`structureClass`、`branch`、`position` 和 `children.attached/items`、`children.detached/items`。
 - `structureClass` 用于布局层识别 clockwise/right 等根结构，避免把右向脑图误判为左右均分脑图。
+- `branch` 用于布局层识别 XMind 保存的展开/收起状态；当前明确支持 `branch: "folded"` 作为 topic 初始收起标记。
 - `position` 目前保留为模型字段，后续支持手动拖拽布局或自由主题时再进入布局计算。
 - 富文本、标记、关系线、边界、概要、附件、公式和主题完整样式暂不解析。
 
