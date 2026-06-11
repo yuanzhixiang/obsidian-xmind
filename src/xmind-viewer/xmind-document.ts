@@ -1,5 +1,5 @@
-import JSZip from 'jszip';
 import { normalizeInvisibleCentralTopicTextColor } from './theme-loader';
+import { readZipTextFile } from './xmind-zip';
 
 export interface XMindTopicPosition {
     x: number;
@@ -150,13 +150,12 @@ function parseSheet(sheet: unknown, index: number): XMindDocumentSheet | null {
 export async function parseXMindDocument(
     file: ArrayBuffer
 ): Promise<XMindDocument> {
-    const zip = await JSZip.loadAsync(file);
-    const contentJson = zip.file('content.json');
-    if (!contentJson) {
+    const contentText = readZipTextFile(file, 'content.json');
+    if (!contentText) {
         throw new Error('XMind 文件缺少 content.json');
     }
 
-    const content = JSON.parse(await contentJson.async('string')) as unknown;
+    const content = JSON.parse(contentText) as unknown;
     normalizeInvisibleCentralTopicTextColor(content);
 
     const sheets = normalizeSheets(content)

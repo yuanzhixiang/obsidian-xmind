@@ -1,16 +1,20 @@
-# Viewer 内联入口
+# Viewer 稳定入口
 
 ## 组件职责
 
-`index.ts` 是本地 viewer 源码层对外入口，提供内联 viewer URL 管理、文件预处理、viewer 控制器和错误处理等稳定 API。
+`index.ts` 是本地 viewer 源码层对外入口。`src/core/` 只能通过这里导入 viewer 能力，不能绕过本入口直接依赖内部实现文件。
 
-## 关键行为
+## 导出口径
 
-- 首次调用时创建 viewer 资源 URL，并用 `embed-viewer.ts` 生成 HTML Blob URL。
-- 后续调用复用同一个 HTML Blob URL，避免重复把大体积 viewer 资产放入内存。
-- 插件卸载或需要释放资源时，先回收 HTML Blob URL，再回收源码 app 脚本 Blob URL 和其它资源 URL。
-- 对外导出 `XMindRenderAdapter`、`loadLocalXMindFile()`、`normalizeLocalXMindFile()` 兼容接口、workbook 元数据类型、主题兼容函数、`getViewerErrorMessage()` 和 `XMindViewerError`，`src/core` 不再直接读取 `src/xmind-viewer/` 内部子模块。
+- `XMindRenderAdapter`：直接源码渲染门面。
+- `loadLocalXMindFile()` / `normalizeLocalXMindFile()`：本地 `.xmind` 文件预处理。
+- `XMindViewerStateStore` 和状态类型：viewer 事件状态投影。
+- `extractXMindWorkbookMetadata()` 和 workbook 类型：轻量元数据提取。
+- `normalizeInvisibleCentralTopicTextColor()`：中心主题兼容修复。
+- `getViewerErrorMessage()` 和 `XMindViewerError`：错误处理。
 
-## 组合关系
+## 约束
 
-Obsidian 视图和插件卸载逻辑应直接从本模块导入，不再通过 `src/core/xmind-viewer-assets.ts` 兼容壳转发，也不绕过本入口导入 `render-adapter.ts`、`iframe-bridge.ts`、`file-loader.ts` 或 `workbook-model.ts`。
+- 本入口不再导出 Blob URL、资源回收、iframe bridge、sheet controller 或 zoom controller。
+- 不恢复 `getInlineXMindViewerUrl()` 或 `revokeInlineXMindViewerAssets()`。
+- 新增导出必须对应真实源码模块职责，不能把旧 bundle 或动态脚本兼容层重新暴露给 `src/core/`。

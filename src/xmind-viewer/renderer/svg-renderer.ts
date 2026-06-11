@@ -18,17 +18,18 @@ const ROOT_STROKE = '#62c7ff';
 const TEXT_DARK = '#1f2328';
 
 function createSvgElement<K extends keyof SVGElementTagNameMap>(
+    ownerDocument: Document,
     tagName: K
 ): SVGElementTagNameMap[K] {
-    return document.createElementNS(SVG_NS, tagName);
+    return ownerDocument.createElementNS(SVG_NS, tagName);
 }
 
 function setAttributes(
     element: Element,
     attributes: Record<string, string | number>
 ): void {
-    for (const [name, value] of Object.entries(attributes)) {
-        element.setAttribute(name, String(value));
+    for (const name in attributes) {
+        element.setAttribute(name, String(attributes[name]));
     }
 }
 
@@ -49,11 +50,12 @@ function pathBetween(
 }
 
 function appendConnector(
+    ownerDocument: Document,
     group: SVGGElement,
     parent: MindMapLayoutTopic,
     child: MindMapLayoutTopic
 ): void {
-    const path = createSvgElement('path');
+    const path = createSvgElement(ownerDocument, 'path');
     setAttributes(path, {
         d: pathBetween(parent, child),
         fill: 'none',
@@ -103,6 +105,7 @@ function textFill(topic: MindMapLayoutTopic): string {
 }
 
 function appendSummaryMarker(
+    ownerDocument: Document,
     node: SVGGElement,
     topic: MindMapLayoutTopic
 ): void {
@@ -111,14 +114,14 @@ function appendSummaryMarker(
     }
 
     const direction = topic.direction || 1;
-    const marker = createSvgElement('g');
+    const marker = createSvgElement(ownerDocument, 'g');
     const x = direction * (topic.width / 2 + 14);
     const y = -topic.height / 2 + 4;
     setAttributes(marker, {
         transform: `translate(${x} ${y})`,
     });
 
-    const circle = createSvgElement('circle');
+    const circle = createSvgElement(ownerDocument, 'circle');
     setAttributes(circle, {
         cx: 0,
         cy: 0,
@@ -129,7 +132,7 @@ function appendSummaryMarker(
     });
     marker.appendChild(circle);
 
-    const text = createSvgElement('text');
+    const text = createSvgElement(ownerDocument, 'text');
     setAttributes(text, {
         x: 0,
         y: 4,
@@ -148,13 +151,17 @@ function appendSummaryMarker(
     node.appendChild(marker);
 }
 
-function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
-    const node = createSvgElement('g');
+function appendTopic(
+    ownerDocument: Document,
+    group: SVGGElement,
+    topic: MindMapLayoutTopic
+): void {
+    const node = createSvgElement(ownerDocument, 'g');
     setAttributes(node, {
         transform: `translate(${topic.x} ${topic.y})`,
     });
 
-    const rect = createSvgElement('rect');
+    const rect = createSvgElement(ownerDocument, 'rect');
     setAttributes(rect, {
         x: -topic.width / 2,
         y: -topic.height / 2,
@@ -167,7 +174,7 @@ function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
     });
     node.appendChild(rect);
 
-    const text = createSvgElement('text');
+    const text = createSvgElement(ownerDocument, 'text');
     setAttributes(text, {
         'text-anchor': 'middle',
         fill: textFill(topic),
@@ -178,7 +185,7 @@ function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
     });
 
     for (const line of topic.lines) {
-        const tspan = createSvgElement('tspan');
+        const tspan = createSvgElement(ownerDocument, 'tspan');
         setAttributes(tspan, {
             x: line.x,
             y: line.y,
@@ -188,7 +195,7 @@ function appendTopic(group: SVGGElement, topic: MindMapLayoutTopic): void {
     }
 
     node.appendChild(text);
-    appendSummaryMarker(node, topic);
+    appendSummaryMarker(ownerDocument, node, topic);
     group.appendChild(node);
 }
 
@@ -206,11 +213,12 @@ export function renderNativeMindMap(
     container: HTMLElement,
     sheet: XMindDocumentSheet
 ): NativeMindMapView {
+    const ownerDocument = container.ownerDocument;
     const layout = layoutMindMap(sheet);
-    const svg = createSvgElement('svg');
-    const viewport = createSvgElement('g');
-    const connectorGroup = createSvgElement('g');
-    const topicGroup = createSvgElement('g');
+    const svg = createSvgElement(ownerDocument, 'svg');
+    const viewport = createSvgElement(ownerDocument, 'g');
+    const connectorGroup = createSvgElement(ownerDocument, 'g');
+    const topicGroup = createSvgElement(ownerDocument, 'g');
 
     setAttributes(svg, {
         width: '100%',
@@ -218,18 +226,16 @@ export function renderNativeMindMap(
         role: 'img',
         'aria-label': sheet.title,
     });
-
-    svg.style.display = 'block';
-    svg.style.width = '100%';
-    svg.style.height = '100%';
-    svg.style.background = '#ffffff';
+    svg.classList.add('xmind-native-svg');
 
     walkTopics(layout.root, (topic) => {
         for (const child of topic.children) {
-            appendConnector(connectorGroup, topic, child);
+            appendConnector(ownerDocument, connectorGroup, topic, child);
         }
     });
-    walkTopics(layout.root, (topic) => appendTopic(topicGroup, topic));
+    walkTopics(layout.root, (topic) =>
+        appendTopic(ownerDocument, topicGroup, topic)
+    );
 
     viewport.appendChild(connectorGroup);
     viewport.appendChild(topicGroup);

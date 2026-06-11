@@ -50,6 +50,6 @@
         "typescript": "5.5.4"
     },
     "dependencies": {
-        "jszip": "3.10.1"
+        "fflate": "0.8.3"
     }
 }

@@ -2,13 +2,13 @@
 
 ## 组件职责
 
-`xmind-document.ts` 是源码版 viewer 的文件模型入口。它在 iframe 内读取 `.xmind` zip，解析 `content.json`，并转换成渲染器能直接消费的 sheet 和 topic 树。
+`xmind-document.ts` 是源码版 viewer 的文件模型入口。它读取 `.xmind` zip 中的 `content.json`，并转换成渲染器能直接消费的 sheet 和 topic 树。
 
 ## 输入输出
 
-- 输入：`open-file` 命令传入的 `.xmind` ArrayBuffer。
+- 输入：Obsidian 视图传入的 `.xmind` ArrayBuffer。
 - 输出：`XMindDocument`，包含 `sheets`、每个 sheet 的 `id`、`title`、`structureClass` 和 `rootTopic`。
-- 依赖：`jszip@3.10.1`，用于读取 zip。
+- 依赖：`xmind-zip.ts`，用于读取 zip 内文本文件。
 - 依赖：`theme-loader.ts`，用于复用中心主题文字色兼容规则。
 
 ## 解析口径

@@ -48,8 +48,6 @@ const RIGHT_SIDE_ROOT_STRUCTURES = new Set([
     'org.xmind.ui.map.clockwise',
     'org.xmind.ui.logic.right',
 ]);
-const FONT_SIZE = 16;
-const ROOT_FONT_SIZE = 28;
 const LINE_HEIGHT = 23;
 const ROOT_LINE_HEIGHT = 32;
 const MIN_NODE_WIDTH = 104;

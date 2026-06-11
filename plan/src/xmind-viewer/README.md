@@ -2,43 +2,36 @@
 
 ## 能力定位
 
-`src/xmind-viewer/` 是本地 XMind viewer 的源码化入口。正式 Obsidian 视图默认使用这里的源码 iframe app 解析并渲染 `.xmind` 文件，不再把旧 `share-embed`、`73350` 或 `snowbrush.js` 作为主运行路径，历史 `src/xmind-viewer-assets/` 编译产物目录已删除。
+`src/xmind-viewer/` 是本地 XMind viewer 的源码化入口。正式 Obsidian 视图直接调用这里的源码模块解析并渲染 `.xmind` 文件，不再生成 iframe、Blob HTML、动态 `<script>` 或运行时 `<style>`。
 
 ## 当前模块
 
-- `index.ts`：对外提供内联 viewer Blob URL 的创建、缓存和回收。
-- `resource-manifest.ts`：集中声明本地 viewer 必需的 CSS、JS chunk、图片和动画等资源。
-- `asset-loader.ts`：把资源清单转换为 Blob/Data URL，并负责回收 URL。
-- `viewer-globals.ts`：生成 iframe 内需要的 XMind 兼容全局变量、旧调度保护、分析空实现和 host shim。
-- `embed-viewer.ts`：生成 iframe HTML 壳，组合样式、脚本 URL 和 `viewer-globals.ts` 输出的 bootstrap script。
-- `native-viewer-app.ts`：iframe 内运行的源码版 viewer app，实现 MessageChannel 协议、文件解析、sheet 切换、缩放和适配画布。
+- `index.ts`：对外导出稳定 API，供 `src/core/` 使用。
+- `render-adapter.ts`：直接挂载 Obsidian 容器，解析文档、渲染 SVG、维护 sheet/zoom 状态和工具控件。
+- `xmind-zip.ts`：封装 `.xmind` zip 读写，底层使用 `fflate`，隔离压缩库替换风险。
 - `xmind-document.ts`：读取 `.xmind` zip 中的 `content.json`，提取 sheet 与 topic 树。
-- `renderer/layout.ts`：把 topic 树转换为左右布局的源码布局模型。
+- `renderer/layout.ts`：把 topic 树转换为源码布局模型，包含 right/clockwise 根结构、二级可见层级和隐藏子树数量。
 - `renderer/svg-renderer.ts`：把布局模型渲染成 SVG，并提供缩放/居中 transform。
-- `iframe-bridge.ts`：创建 iframe，建立 Obsidian 视图到 iframe 的 MessageChannel，并提供请求/回复式命令发送能力。
-- `viewer-events.ts`：集中维护 `setup-channel`、`channel-ready`、reply id 和 viewer 命令类型。
-- `viewer-state.ts`：把 `map-ready`、`sheets-load`、`sheet-switch`、`zoom-change` 等 runtime 事件投影成源码层状态。
-- `sheet-controller.ts`：维护 sheet 列表、当前 sheet 和 sheet 切换行为。
+- `viewer-events.ts`：集中维护 viewer event 类型。
+- `viewer-state.ts`：把 `map-ready`、`sheets-load`、`sheet-switch`、`zoom-change` 等事件投影成源码层状态。
 - `theme-loader.ts`：维护 `content.json` 中 XMind theme 的源码级兼容规则。
 - `workbook-model.ts`：从 `content.json` 提取轻量 workbook/sheet 元数据。
-- `file-loader.ts`：读取 `.xmind` zip，组合 workbook 元数据提取与 theme 兼容修复，并重新生成传给 iframe 的内存副本。
-- `zoom-controller.ts`：维护当前缩放值、适配画布和设置缩放比例行为。
-- `render-adapter.ts`：作为 viewer 外层门面，组合 iframe bridge、state、sheet controller 和 zoom controller。
+- `file-loader.ts`：读取 `.xmind` zip，组合 workbook 元数据提取与 theme 兼容修复。
 - `errors.ts`：维护 viewer 错误类型和用户可见错误文案转换。
 
-## 兼容层边界
+## 已删除边界
 
-- 旧 `share-embed`、`73350`、语言 chunk、`snowbrush.js` 不再保留在仓库中；如需补齐能力，应在本目录新增明确职责的源码模块。
-- `file-loader.ts` 和 `theme-loader.ts` 已经把中心主题颜色规范化迁到源码层；正式 Obsidian 视图和调试父页面都会在发送 `open-file` 前完成预处理。
-- 三方通用依赖必须优先通过 `package.json` 引入，不再从历史 viewer JS 文件中复制维护。
+- `src/xmind-viewer-assets/` 已删除，旧 `share-embed`、`73350`、语言 chunk、`snowbrush.js` 不再是主运行路径。
+- `asset-loader.ts`、`embed-viewer.ts`、`resource-manifest.ts`、`viewer-globals.ts`、`native-viewer-app.ts`、`iframe-bridge.ts`、`sheet-controller.ts`、`zoom-controller.ts` 已删除。
+- 正式代码不得恢复动态脚本注入、运行时 style 注入、iframe MessageChannel 或旧 bundle 兼容层；这会触发 Obsidian 官方社区插件扫描错误。
 
 ## 迁移口径
 
-- 每次只迁移一层可独立验证的逻辑，迁移后必须保持 iframe 协议和用户行为不变。
-- 低风险优先级：HTML/bootstrap、iframe bridge、render adapter、文件预处理、资源加载器、文件解析、渲染状态适配、最后才是图形渲染器。
-- 对无法确认语义的编译后模块，保留兼容资产并在 plan 中记录后续替换点，不凭猜测重写。
-- `src/core/` 中不再保留 viewer 兼容 re-export；Obsidian 视图和插件卸载逻辑必须直接导入 `src/xmind-viewer/`。
+- 三方通用依赖必须通过 `package.json` 和源码 import 引入，不从历史 viewer JS 文件复制维护。
+- zip 读写必须通过 `xmind-zip.ts` 进入，不得直接在业务模块重新引入 JSZip 或其它会触发动态脚本/动态代码扫描的压缩库。
+- 新增 XMind 语义时，优先扩展 `xmind-document.ts`、`renderer/layout.ts` 或 `renderer/svg-renderer.ts`。
+- 新增用户可见状态时，先更新 `viewer-events.ts` 和 `viewer-state.ts`，再由 `render-adapter.ts` 发出事件。
 
 ## 验证要求
 
-涉及本目录的改动至少运行 `pnpm check:local-viewer`、`pnpm lint`、`pnpm build`。涉及 iframe 行为或 `.xmind` 预处理时，还要运行 `pnpm debug:xmind`，确认 `map-ready` 正常、中心主题可见、缩放、适配画布和 sheet 切换可用，浏览器 console 无错误。
+涉及本目录的改动至少运行 `pnpm check:local-viewer`、`pnpm lint`、`pnpm build`。涉及布局、缩放或真实文件渲染时，还要运行 `pnpm debug:xmind`，确认 `map-ready` 正常、中心主题可见、缩放、适配画布和 sheet 切换可用，浏览器 console 无错误。

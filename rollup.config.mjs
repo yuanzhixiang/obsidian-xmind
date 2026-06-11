@@ -4,7 +4,6 @@ import json from '@rollup/plugin-json';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import path from 'node:path';
 import replace from '@rollup/plugin-replace';
-import { rollup as createRollupBundle } from 'rollup';
 import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import copy from 'rollup-plugin-copy';
@@ -38,53 +37,11 @@ function jsStringLiteral(value) {
         .replace(/\u2029/g, '\\u2029');
 }
 
-async function createSourceScriptBundle(entryPath) {
-    const bundle = await createRollupBundle({
-        input: entryPath,
-        plugins: [
-            json(),
-            nodeResolve({
-                browser: true,
-                preferBuiltins: false,
-                extensions: ['.js', '.jsx', '.ts', '.tsx'],
-            }),
-            commonjs({
-                include: 'node_modules/**',
-            }),
-            typescript({
-                tsconfig: './tsconfig.json',
-                declaration: false,
-                declarationMap: false,
-                sourceMap: false,
-            }),
-        ],
-        treeshake: false,
-    });
-
-    try {
-        const { output } = await bundle.generate({
-            format: 'iife',
-            name: 'XMindNativeViewerApp',
-            sourcemap: false,
-        });
-        return output
-            .filter((chunkOrAsset) => chunkOrAsset.type === 'chunk')
-            .map((chunk) => chunk.code)
-            .join('\n');
-    } finally {
-        await bundle.close();
-    }
-}
-
 function inlineAssetPlugin() {
     return {
         name: 'inline-assets',
         resolveId(source, importer) {
-            if (
-                !source.endsWith('?raw') &&
-                !source.endsWith('?dataurl') &&
-                !source.endsWith('?appbundle')
-            ) {
+            if (!source.endsWith('?raw') && !source.endsWith('?dataurl')) {
                 return null;
             }
 
@@ -103,10 +60,6 @@ function inlineAssetPlugin() {
             if (query === 'dataurl') {
                 const encoded = fs.readFileSync(assetPath).toString('base64');
                 return `export default ${jsStringLiteral(`data:${mimeTypeFor(assetPath)};base64,${encoded}`)};`;
-            }
-
-            if (query === 'appbundle') {
-                return `export default ${jsStringLiteral(await createSourceScriptBundle(assetPath))};`;
             }
 
             return null;
