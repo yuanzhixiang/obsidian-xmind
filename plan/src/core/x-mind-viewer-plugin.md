@@ -11,7 +11,7 @@
 - `onload()` 优先通过 Obsidian 内部 `app.embedRegistry.registerExtensions(['xmind'], creator)` 支持原生 embed 语法 `![[文件名.xmind]]`，让 Obsidian 自己的 embed 管线把 `.xmind` 交给 `XMindEmbedComponent` 加载。
 - `onload()` 继续注册 `registerMarkdownPostProcessor()` 作为兜底：如果当前 Obsidian 运行时没有 `embedRegistry`，post processor 处理 Obsidian 已生成的 internal/file embed DOM；无论是否存在 `embedRegistry`，post processor 都要识别仍保留为原始文本的独立 `![[*.xmind]]` 段落。不改写普通 `[[文件名.xmind]]` 链接。
 - `onload()` 通过 `registerEditorExtension()` 注册 CodeMirror Live Preview widget，支持编辑态/实时预览中的 `![[文件名.xmind]]`。Live Preview 不依赖 `.internal-embed` / `.file-embed` DOM，因为该场景由 CodeMirror 装饰层渲染，不能只靠 Markdown post processor。
-- Live Preview widget 只在 `editorLivePreviewField === true` 时接管独占一行的 `![[*.xmind]]` 文本；即使光标位于该行，也应优先显示 XMind viewer，避免用户看到默认附件卡片。
+- Live Preview widget 只在 `editorLivePreviewField === true` 时接管独占一行的 `![[*.xmind]]` 文本；当光标或选区位于该语法行时必须露出原始 `![[*.xmind]]` 文本，方便用户像编辑普通 Obsidian embed 一样修改链接，光标离开后再恢复 XMind viewer。
 - embed 解析必须兼容 Obsidian 默认附件卡片结构：除了读取 embed 容器自身的 `src`、`data-src`、`data-path`、`href` 等属性，也要读取子级 `a.internal-link` / `a[href]` / `data-href` 等链接元素和文件名文本，避免 `.xmind` 附件只显示默认文件卡片。
 - embed 解析优先使用 `metadataCache.getFirstLinkpathDest(linkText, ctx.sourcePath)`，因此支持同目录相对链接、vault 内路径和 Obsidian 的链接解析规则；如果上下文路径不可用或 Obsidian 没有解析到文件，允许按 vault 内唯一 `.xmind` 文件名兜底匹配。
 - embed 渲染由 `XMindMarkdownEmbedRenderer` 继承 `MarkdownRenderChild` 管理生命周期，阅读视图重渲染、切换文件或删除 embed DOM 时必须销毁对应 `XMindRenderAdapter`。
@@ -39,7 +39,7 @@
 
 2026-06-12 排查过一次 Markdown 笔记里的 `![[202606101441 搞到钱再说.xmind]]` 仍显示为 Obsidian 默认附件卡片的问题。根因是截图处于 Obsidian Live Preview/编辑态，原实现只注册 `registerMarkdownPostProcessor()`，只能稳定处理阅读视图里的 `.internal-embed` / `.file-embed` DOM，不能接管 CodeMirror Live Preview 装饰层。
 
-当前口径是三条路径互补：原生 `embedRegistry` 是阅读视图和 Obsidian embed 管线主路径；post processor 只作为缺少 `embedRegistry` 或 raw 段落残留时的兜底；Live Preview 使用 `registerEditorExtension()`、`editorLivePreviewField`、`editorInfoField` 和 `Decoration.replace()`，只在独占一行的 `![[*.xmind]]` 语法上替换为 `XMindLivePreviewEmbedWidget`。Live Preview 不再因为光标或选区位于 embed 语法内部而跳过替换；需要编辑链接时可以切换源代码模式或删除 widget 后重新输入。
+当前口径是三条路径互补：原生 `embedRegistry` 是阅读视图和 Obsidian embed 管线主路径；post processor 只作为缺少 `embedRegistry` 或 raw 段落残留时的兜底；Live Preview 使用 `registerEditorExtension()`、`editorLivePreviewField`、`editorInfoField` 和 `Decoration.replace()`，只在独占一行的 `![[*.xmind]]` 语法上替换为 `XMindLivePreviewEmbedWidget`。Live Preview 必须检测当前 selection：光标或选区碰到 embed 所在行时跳过替换，让原始 `![[*.xmind]]` 可见；光标离开该行后再显示 viewer。
 
 ### `reading 'config'` toast 来源判断
 

@@ -573,6 +573,9 @@ class XMindLivePreviewEmbedPlugin {
                 if (line.text.trim() !== match[0]) {
                     continue;
                 }
+                if (selectionTouchesRange(this.view, line.from, line.to)) {
+                    continue;
+                }
 
                 const file = resolveXMindLinkText(
                     this.app,
@@ -624,6 +627,18 @@ function getEditorSourcePath(view: EditorView): string | null {
     } catch {
         return null;
     }
+}
+
+function selectionTouchesRange(
+    view: EditorView,
+    from: number,
+    to: number
+): boolean {
+    return view.state.selection.ranges.some((range) =>
+        range.empty
+            ? range.from >= from && range.from <= to
+            : range.from < to && range.to > from
+    );
 }
 
 function createLivePreviewEmbedExtension(

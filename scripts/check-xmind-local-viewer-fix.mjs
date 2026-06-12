@@ -449,7 +449,9 @@ const checks = [
             viewerPlugin.includes('findXMindFileByLinkText') &&
             viewerPlugin.includes('app.vault.getFiles()') &&
             viewerPlugin.includes('readBinary(this.file)') &&
-            !viewerPlugin.includes('selectionTouchesRange') &&
+            viewerPlugin.includes('selectionTouchesRange') &&
+            viewerPlugin.includes('line.from') &&
+            viewerPlugin.includes('line.to') &&
             !viewerView.includes('modifyBinary') &&
             !viewerView.includes('createBinary') &&
             !viewerPlugin.includes('modifyBinary') &&
