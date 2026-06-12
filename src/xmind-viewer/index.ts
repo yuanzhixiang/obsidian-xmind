@@ -13,6 +13,17 @@ export type {
 } from './viewer-state';
 export type { ViewerEvent, ViewerEventName } from './viewer-events';
 export { extractXMindWorkbookMetadata } from './workbook-model';
+export {
+    createXMindTranslator,
+    detectXMindLocale,
+    normalizeXMindLocale,
+    translateXMind,
+} from '../i18n';
+export type {
+    XMindI18nKey,
+    XMindLocale,
+    XMindTranslator,
+} from '../i18n';
 export type { LoadedLocalXMindFile } from './file-loader';
 export type {
     XMindWorkbookMetadata,

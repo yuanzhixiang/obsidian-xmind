@@ -11,12 +11,51 @@ const zoomInput = document.querySelector('#zoomInput');
 const sheetSelect = document.querySelector('#sheetSelect');
 const clearLogButton = document.querySelector('#clearLogButton');
 
+const requestedLocale = new URLSearchParams(window.location.search).get('lang');
+const locale = requestedLocale
+    ? window.XMindDebugViewer?.normalizeXMindLocale?.(requestedLocale) || 'en'
+    : window.XMindDebugViewer?.detectXMindLocale?.(
+          undefined,
+          window,
+          document
+      ) || 'en';
+const translator = window.XMindDebugViewer?.createXMindTranslator?.(locale);
+
+function t(key, params) {
+    return translator?.t(key, params) || key;
+}
+
+function applyTranslations() {
+    document.documentElement.lang = locale;
+    document.title = t('appTitle');
+
+    for (const element of document.querySelectorAll('[data-i18n]')) {
+        element.textContent = t(element.dataset.i18n);
+    }
+
+    for (const element of document.querySelectorAll('[data-i18n-placeholder]')) {
+        element.setAttribute(
+            'placeholder',
+            t(element.dataset.i18nPlaceholder)
+        );
+    }
+
+    for (const element of document.querySelectorAll('[data-i18n-aria-label]')) {
+        element.setAttribute(
+            'aria-label',
+            t(element.dataset.i18nAriaLabel)
+        );
+    }
+}
+
 let viewer = null;
 let loadRun = 0;
 let activeFileSource = {
     kind: 'server',
-    label: '默认调试文件',
+    label: t('sourceFileDefault'),
 };
+
+applyTranslations();
 
 function setStatus(status) {
     statusDot.classList.toggle('is-ready', status === 'ready');
@@ -55,7 +94,7 @@ function updateSheets(sheets) {
     if (!Array.isArray(sheets) || sheets.length === 0) {
         const option = document.createElement('option');
         option.value = '';
-        option.textContent = '无 sheet 数据';
+        option.textContent = t('emptySheetOption');
         sheetSelect.appendChild(option);
         return;
     }
@@ -78,13 +117,13 @@ async function loadDebugConfig() {
         cache: 'no-store',
     });
     if (!response.ok) {
-        throw new Error(`读取调试配置失败：HTTP ${response.status}`);
+        throw new Error(t('readConfigError', { status: response.status }));
     }
 
     const config = await response.json();
     setActiveFileSource({
         kind: 'server',
-        label: String(config.xmindFile || '默认调试文件'),
+        label: String(config.xmindFile || t('sourceFileDefault')),
     });
 }
 
@@ -93,7 +132,7 @@ function formatFileLabel(file) {
         return file.name;
     }
 
-    return '本地选择的 XMind 文件';
+    return t('localFileFallback');
 }
 
 async function readActiveFile(source, runId) {
@@ -110,7 +149,7 @@ async function readActiveFile(source, runId) {
         cache: 'no-store',
     });
     if (!response.ok) {
-        throw new Error(`读取 XMind 文件失败：HTTP ${response.status}`);
+        throw new Error(t('fileReadError', { status: response.status }));
     }
     const file = await response.arrayBuffer();
     log('file-read', file);
@@ -119,7 +158,7 @@ async function readActiveFile(source, runId) {
 
 async function preprocessLocalXMindFile(file) {
     if (!window.XMindDebugViewer) {
-        throw new Error('源码 viewer 调试运行时未加载');
+        throw new Error(t('loadRuntimeError'));
     }
 
     const loaded = await window.XMindDebugViewer.loadLocalXMindFile(file);
@@ -166,6 +205,7 @@ async function loadViewer() {
     viewer = new window.XMindDebugViewer.XMindRenderAdapter({
         el: viewerHost,
         file: loadedFile,
+        locale,
         onStateChange: handleViewerStateChange,
         onError(error) {
             setStatus('error');

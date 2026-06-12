@@ -1,4 +1,14 @@
-import { parseXMindDocument, XMindDocument } from './xmind-document';
+import {
+    createXMindTranslator,
+    detectXMindLocale,
+    XMindLocale,
+    XMindTranslator,
+} from '../i18n';
+import {
+    parseXMindDocument,
+    XMindDocument,
+    XMindTopicNode,
+} from './xmind-document';
 import {
     renderNativeMindMap,
     NativeMindMapView,
@@ -16,6 +26,7 @@ export interface XMindRenderAdapterOptions {
     file: ArrayBuffer;
     onError?: (error: unknown) => void;
     onStateChange?: XMindViewerStateListener;
+    locale?: XMindLocale;
 }
 
 const MIN_ZOOM = 0.2;
@@ -24,6 +35,7 @@ const DEFAULT_ZOOM = 1;
 const FIT_PADDING = 96;
 const WHEEL_LINE_DELTA = 16;
 const WHEEL_ZOOM_SENSITIVITY = 0.004;
+const FOLDED_TOPIC_BRANCH = 'folded';
 
 interface ViewportPoint {
     x: number;
@@ -38,6 +50,12 @@ interface ViewportAnchor {
 interface RenderSheetOptions {
     fitToView: boolean;
     preserveViewport: boolean;
+}
+
+interface TopicSelectionOptions {
+    revealPath?: boolean;
+    centerInViewport?: boolean;
+    focusTopic?: boolean;
 }
 
 interface RightDragState {
@@ -103,26 +121,173 @@ function isZoomWheelEvent(event: WheelEvent): boolean {
     return event.ctrlKey || event.metaKey;
 }
 
+function countTopicDescendants(topic: XMindTopicNode): number {
+    return topic.children.reduce(
+        (sum, child) => sum + 1 + countTopicDescendants(child),
+        0
+    );
+}
+
+function formatHiddenTopicCount(count: number): string {
+    return count > 999 ? '...' : String(count);
+}
+
 export class XMindRenderAdapter {
     private readonly state = new XMindViewerStateStore();
     private readonly ownerDocument: Document;
     private readonly ownerWindow: Window;
+    private readonly translator: XMindTranslator;
     private readonly root: HTMLDivElement;
     private readonly canvas: HTMLDivElement;
     private readonly status: HTMLDivElement;
     private readonly zoomLabel: HTMLSpanElement;
-    private readonly sheetLabel: HTMLDivElement;
+    private readonly sheetTabs: HTMLDivElement;
+    private readonly outliner: HTMLDivElement;
+    private readonly outlinerToggleButton: HTMLButtonElement;
+    private readonly searchPanel: HTMLDivElement;
+    private readonly searchInput: HTMLInputElement;
+    private readonly searchResultLabel: HTMLSpanElement;
+    private readonly searchToggleButton: HTMLButtonElement;
     private readonly unsubscribeInitialStateListener?: () => void;
     private documentModel: XMindDocument | null = null;
     private view: NativeMindMapView | null = null;
     private readonly expandedTopicIdsBySheet = new Map<string, Set<string>>();
     private readonly collapsedTopicIdsBySheet = new Map<string, Set<string>>();
+    private readonly selectedTopicIdBySheet = new Map<string, string>();
     private zoomScale = DEFAULT_ZOOM;
     private panOffsetX = 0;
     private panOffsetY = 0;
     private fitMode = true;
+    private isOutlinerVisible = false;
+    private isSearchVisible = false;
+    private searchQuery = '';
+    private readonly searchMatchIndexBySheet = new Map<string, number>();
     private rightDragState: RightDragState | null = null;
     private destroyed = false;
+
+    constructor(private readonly options: XMindRenderAdapterOptions) {
+        this.ownerDocument = options.el.ownerDocument;
+        const ownerWindow = this.ownerDocument.defaultView;
+        if (!ownerWindow) {
+            throw new Error('XMind viewer container has no owner window.');
+        }
+        this.ownerWindow = ownerWindow;
+        this.translator = createXMindTranslator(
+            options.locale ??
+                detectXMindLocale(undefined, ownerWindow, this.ownerDocument)
+        );
+        this.unsubscribeInitialStateListener = options.onStateChange
+            ? this.state.subscribe(options.onStateChange)
+            : undefined;
+
+        this.root = createElement(
+            this.ownerDocument,
+            'div',
+            'xmind-native-viewer'
+        );
+        this.canvas = createElement(
+            this.ownerDocument,
+            'div',
+            'xmind-native-canvas'
+        );
+        this.status = createElement(
+            this.ownerDocument,
+            'div',
+            'xmind-native-status'
+        );
+        this.zoomLabel = createElement(this.ownerDocument, 'span');
+        this.sheetTabs = createElement(
+            this.ownerDocument,
+            'div',
+            'xmind-native-sheet-tabs'
+        );
+        this.outliner = createElement(
+            this.ownerDocument,
+            'div',
+            'xmind-native-outliner'
+        );
+        this.outlinerToggleButton = this.createToolbarButton(
+            this.translator.t('outliner'),
+            () => this.toggleOutliner()
+        );
+        this.searchPanel = createElement(
+            this.ownerDocument,
+            'div',
+            'xmind-native-search'
+        );
+        this.searchInput = createElement(this.ownerDocument, 'input');
+        this.searchResultLabel = createElement(this.ownerDocument, 'span');
+        this.searchToggleButton = this.createToolbarButton(
+            this.translator.t('search'),
+            () => this.toggleSearch()
+        );
+
+        this.mount();
+        this.ownerWindow.addEventListener('resize', this.handleResize);
+        this.canvas.addEventListener('wheel', this.handleWheel, {
+            passive: false,
+        });
+        this.canvas.addEventListener('pointerdown', this.handlePointerDown);
+        this.canvas.addEventListener('pointermove', this.handlePointerMove);
+        this.canvas.addEventListener('pointerup', this.handlePointerUp);
+        this.canvas.addEventListener('pointercancel', this.handlePointerUp);
+        this.canvas.addEventListener('lostpointercapture', this.handlePointerUp);
+        this.canvas.addEventListener('contextmenu', this.handleContextMenu);
+        void this.openFile(options.file).catch((error) =>
+            this.showError(error)
+        );
+    }
+
+    destroy(): void {
+        this.destroyed = true;
+        this.unsubscribeInitialStateListener?.();
+        this.ownerWindow.removeEventListener('resize', this.handleResize);
+        this.canvas.removeEventListener('wheel', this.handleWheel);
+        this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
+        this.canvas.removeEventListener('pointermove', this.handlePointerMove);
+        this.canvas.removeEventListener('pointerup', this.handlePointerUp);
+        this.canvas.removeEventListener('pointercancel', this.handlePointerUp);
+        this.canvas.removeEventListener(
+            'lostpointercapture',
+            this.handlePointerUp
+        );
+        this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
+        this.view?.destroy();
+        this.view = null;
+        this.root.remove();
+    }
+
+    getState(): XMindViewerState {
+        return this.state.getSnapshot();
+    }
+
+    subscribeState(listener: XMindViewerStateListener): () => void {
+        return this.state.subscribe(listener);
+    }
+
+    getSheets(): XMindViewerSheet[] {
+        return this.state.getSnapshot().sheets;
+    }
+
+    getActiveSheetId(): string | null {
+        return this.state.getSnapshot().activeSheetId;
+    }
+
+    getZoom(): number | null {
+        return this.state.getSnapshot().zoom;
+    }
+
+    async fitMap(): Promise<void> {
+        this.fitMapSync();
+    }
+
+    async zoom(scale: number): Promise<void> {
+        this.setZoom(scale);
+    }
+
+    async switchSheet(sheetId: string): Promise<void> {
+        this.switchSheetSync(sheetId);
+    }
 
     private readonly handleResize = (): void => {
         if (this.fitMode) {
@@ -224,109 +389,9 @@ export class XMindRenderAdapter {
         event.preventDefault();
     };
 
-    constructor(private readonly options: XMindRenderAdapterOptions) {
-        this.ownerDocument = options.el.ownerDocument;
-        const ownerWindow = this.ownerDocument.defaultView;
-        if (!ownerWindow) {
-            throw new Error('XMind viewer container has no owner window.');
-        }
-        this.ownerWindow = ownerWindow;
-        this.unsubscribeInitialStateListener = options.onStateChange
-            ? this.state.subscribe(options.onStateChange)
-            : undefined;
-
-        this.root = createElement(
-            this.ownerDocument,
-            'div',
-            'xmind-native-viewer'
-        );
-        this.canvas = createElement(
-            this.ownerDocument,
-            'div',
-            'xmind-native-canvas'
-        );
-        this.status = createElement(
-            this.ownerDocument,
-            'div',
-            'xmind-native-status'
-        );
-        this.zoomLabel = createElement(this.ownerDocument, 'span');
-        this.sheetLabel = createElement(
-            this.ownerDocument,
-            'div',
-            'xmind-native-sheet'
-        );
-
-        this.mount();
-        this.ownerWindow.addEventListener('resize', this.handleResize);
-        this.canvas.addEventListener('wheel', this.handleWheel, {
-            passive: false,
-        });
-        this.canvas.addEventListener('pointerdown', this.handlePointerDown);
-        this.canvas.addEventListener('pointermove', this.handlePointerMove);
-        this.canvas.addEventListener('pointerup', this.handlePointerUp);
-        this.canvas.addEventListener('pointercancel', this.handlePointerUp);
-        this.canvas.addEventListener('lostpointercapture', this.handlePointerUp);
-        this.canvas.addEventListener('contextmenu', this.handleContextMenu);
-        void this.openFile(options.file).catch((error) =>
-            this.showError(error)
-        );
-    }
-
-    destroy(): void {
-        this.destroyed = true;
-        this.unsubscribeInitialStateListener?.();
-        this.ownerWindow.removeEventListener('resize', this.handleResize);
-        this.canvas.removeEventListener('wheel', this.handleWheel);
-        this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
-        this.canvas.removeEventListener('pointermove', this.handlePointerMove);
-        this.canvas.removeEventListener('pointerup', this.handlePointerUp);
-        this.canvas.removeEventListener('pointercancel', this.handlePointerUp);
-        this.canvas.removeEventListener(
-            'lostpointercapture',
-            this.handlePointerUp
-        );
-        this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
-        this.view?.destroy();
-        this.view = null;
-        this.root.remove();
-    }
-
-    getState(): XMindViewerState {
-        return this.state.getSnapshot();
-    }
-
-    subscribeState(listener: XMindViewerStateListener): () => void {
-        return this.state.subscribe(listener);
-    }
-
-    getSheets(): XMindViewerSheet[] {
-        return this.state.getSnapshot().sheets;
-    }
-
-    getActiveSheetId(): string | null {
-        return this.state.getSnapshot().activeSheetId;
-    }
-
-    getZoom(): number | null {
-        return this.state.getSnapshot().zoom;
-    }
-
-    async fitMap(): Promise<void> {
-        this.fitMapSync();
-    }
-
-    async zoom(scale: number): Promise<void> {
-        this.setZoom(scale);
-    }
-
-    async switchSheet(sheetId: string): Promise<void> {
-        this.switchSheetSync(sheetId);
-    }
-
     private mount(): void {
-        this.status.textContent = '等待 XMind 文件';
-        this.sheetLabel.textContent = '';
+        this.status.textContent = this.translator.t('viewerLoading');
+        this.sheetTabs.textContent = '';
 
         const toolbar = createElement(
             this.ownerDocument,
@@ -341,36 +406,108 @@ export class XMindRenderAdapter {
             this.createToolbarButton('+', () =>
                 this.setZoom(this.zoomScale * 1.1)
             ),
-            this.createToolbarButton('适配', () => this.fitMapSync())
+            this.createToolbarButton(this.translator.t('fitCanvas'), () =>
+                this.fitMapSync()
+            ),
+            this.searchToggleButton,
+            this.outlinerToggleButton
         );
 
-        this.root.append(this.canvas, this.status, this.sheetLabel, toolbar);
+        this.outliner.setAttribute(
+            'aria-label',
+            this.translator.t('outlinerLabel')
+        );
+        this.outliner.hidden = true;
+        this.outlinerToggleButton.setAttribute('aria-pressed', 'false');
+        this.mountSearchPanel();
+        this.root.append(
+            this.canvas,
+            this.status,
+            this.sheetTabs,
+            this.searchPanel,
+            this.outliner,
+            toolbar
+        );
         this.options.el.replaceChildren(this.root);
         this.updateZoomLabel();
     }
 
     private createToolbarButton(
         label: string,
-        onClick: () => void
+        onClick: () => Promise<void> | void
     ): HTMLButtonElement {
         const button = createElement(this.ownerDocument, 'button');
         button.type = 'button';
         button.textContent = label;
         button.addEventListener('click', () => {
-            try {
-                onClick();
-            } catch (error) {
-                this.showError(error);
-            }
+            void Promise.resolve(onClick()).catch((error) =>
+                this.showError(error)
+            );
         });
         return button;
     }
 
+    private mountSearchPanel(): void {
+        this.searchPanel.hidden = true;
+        this.searchPanel.setAttribute(
+            'aria-label',
+            this.translator.t('searchLabel')
+        );
+        this.searchToggleButton.setAttribute('aria-pressed', 'false');
+
+        this.searchInput.type = 'search';
+        this.searchInput.placeholder = this.translator.t('searchPlaceholder');
+        this.searchInput.setAttribute(
+            'aria-label',
+            this.translator.t('searchPlaceholder')
+        );
+        this.searchInput.addEventListener('input', () => {
+            this.updateSearchQuery(this.searchInput.value);
+        });
+        this.searchInput.addEventListener('keydown', (event: KeyboardEvent) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.moveSearchMatch(event.shiftKey ? -1 : 1);
+            }
+            event.stopPropagation();
+        });
+
+        const previousButton = this.createToolbarButton(
+            this.translator.t('searchPrevious'),
+            () => this.moveSearchMatch(-1)
+        );
+        const nextButton = this.createToolbarButton(
+            this.translator.t('searchNext'),
+            () => this.moveSearchMatch(1)
+        );
+        this.searchPanel.append(
+            this.searchInput,
+            previousButton,
+            nextButton,
+            this.searchResultLabel
+        );
+        this.updateSearchResultLabel(null);
+    }
+
     private async openFile(file: ArrayBuffer): Promise<void> {
-        this.status.textContent = '正在读取 XMind 文件...';
+        this.status.textContent = this.translator.t('viewerLoading');
         this.documentModel = await parseXMindDocument(file);
         this.expandedTopicIdsBySheet.clear();
         this.collapsedTopicIdsBySheet.clear();
+        this.selectedTopicIdBySheet.clear();
+        this.searchQuery = '';
+        this.searchInput.value = '';
+        this.searchMatchIndexBySheet.clear();
+        this.emitSheetsLoad();
+        this.switchSheetSync(this.documentModel.sheets[0].id);
+        this.emit('map-ready', true);
+    }
+
+    private emitSheetsLoad(): void {
+        if (!this.documentModel) {
+            return;
+        }
+
         this.emit(
             'sheets-load',
             this.documentModel.sheets.map((sheet) => ({
@@ -378,8 +515,41 @@ export class XMindRenderAdapter {
                 title: sheet.title,
             }))
         );
-        this.switchSheetSync(this.documentModel.sheets[0].id);
-        this.emit('map-ready', true);
+    }
+
+    private renderSheetTabs(activeSheetId: string | null): void {
+        const sheets = this.documentModel?.sheets ?? [];
+        const fragment = this.ownerDocument.createDocumentFragment();
+
+        for (const sheet of sheets) {
+            const tab = createElement(
+                this.ownerDocument,
+                'button',
+                'xmind-native-sheet-tab'
+            );
+            tab.type = 'button';
+            tab.textContent = sheet.title;
+            tab.title = sheet.title;
+            tab.dataset.sheetId = sheet.id;
+            if (sheet.id === activeSheetId) {
+                tab.classList.add('is-active');
+                tab.setAttribute('aria-current', 'page');
+            }
+            tab.addEventListener('click', () => {
+                if (sheet.id === this.getActiveSheetId()) {
+                    return;
+                }
+
+                try {
+                    this.switchSheetSync(sheet.id);
+                } catch (error) {
+                    this.showError(error);
+                }
+            });
+            fragment.appendChild(tab);
+        }
+
+        this.sheetTabs.replaceChildren(fragment);
     }
 
     private switchSheetSync(sheetId: string): void {
@@ -387,11 +557,13 @@ export class XMindRenderAdapter {
             (item) => item.id === sheetId
         );
         if (!sheet) {
-            throw new Error(`找不到 sheet：${sheetId}`);
+            throw new Error(
+                this.translator.t('rootMissingSheet', { sheetId })
+            );
         }
 
         this.status.textContent = '';
-        this.sheetLabel.textContent = sheet.title;
+        this.renderSheetTabs(sheet.id);
         this.renderSheet(sheet, {
             fitToView: true,
             preserveViewport: false,
@@ -406,17 +578,34 @@ export class XMindRenderAdapter {
         const viewportAnchor = renderOptions.preserveViewport
             ? this.captureViewportAnchor()
             : null;
+        const searchMatches = this.getSearchMatches(sheet);
+        const currentSearchTopicId = this.currentSearchTopicId(
+            sheet,
+            searchMatches
+        );
+
         this.view?.destroy();
         this.view = renderNativeMindMap(this.canvas, sheet, {
             expandedTopicIds: this.getExpandedTopicIds(sheet.id),
             collapsedTopicIds: this.getCollapsedTopicIds(sheet.id),
+            selectedTopicId: this.selectedTopicIdBySheet.get(sheet.id) ?? null,
+            searchMatchTopicIds: new Set(searchMatches),
+            currentSearchTopicId,
+            locale: this.translator.locale,
             onToggleTopic: (topicId, isExpanded): void => {
                 this.toggleTopic(sheet.id, topicId, isExpanded);
+            },
+            onSelectTopic: (topicId): void => {
+                this.selectTopic(sheet.id, topicId, {
+                    focusTopic: true,
+                });
             },
         });
 
         if (renderOptions.fitToView) {
             this.fitMapSync();
+            this.renderOutliner(sheet);
+            this.updateSearchResultLabel(sheet);
             return;
         }
 
@@ -425,6 +614,470 @@ export class XMindRenderAdapter {
             this.restoreViewportAnchor(viewportAnchor);
         }
         this.applyTransform();
+        this.renderOutliner(sheet);
+        this.updateSearchResultLabel(sheet);
+    }
+
+    private normalizeSearchQuery(value: string): string {
+        return value.trim().toLocaleLowerCase();
+    }
+
+    private searchableTopicText(topic: XMindTopicNode): string {
+        return [
+            topic.title,
+            ...topic.labelTexts,
+            topic.noteText,
+            topic.href,
+        ]
+            .filter((value): value is string => Boolean(value))
+            .join('\n')
+            .toLocaleLowerCase();
+    }
+
+    private collectSearchableTopics(topic: XMindTopicNode): XMindTopicNode[] {
+        const topics = [topic];
+        for (const child of this.topicBucketsForOutliner(topic)) {
+            topics.push(...this.collectSearchableTopics(child));
+        }
+        return topics;
+    }
+
+    private getSearchMatches(
+        sheet: NonNullable<XMindDocument['sheets'][number]>
+    ): string[] {
+        const query = this.normalizeSearchQuery(this.searchQuery);
+        if (!query) {
+            return [];
+        }
+
+        return this.collectSearchableTopics(sheet.rootTopic)
+            .filter((topic) => this.searchableTopicText(topic).includes(query))
+            .map((topic) => topic.id);
+    }
+
+    private currentSearchTopicId(
+        sheet: NonNullable<XMindDocument['sheets'][number]>,
+        matches = this.getSearchMatches(sheet)
+    ): string | null {
+        if (matches.length === 0) {
+            return null;
+        }
+
+        const index = clamp(
+            this.searchMatchIndexBySheet.get(sheet.id) ?? 0,
+            0,
+            matches.length - 1
+        );
+        this.searchMatchIndexBySheet.set(sheet.id, index);
+        return matches[index] ?? null;
+    }
+
+    private findTopicAncestorIds(
+        rootTopic: XMindTopicNode,
+        topicId: string
+    ): string[] {
+        const visitedTopicIds = new Set<string>();
+        const visit = (
+            topic: XMindTopicNode,
+            ancestorIds: string[]
+        ): string[] | null => {
+            if (visitedTopicIds.has(topic.id)) {
+                return null;
+            }
+            visitedTopicIds.add(topic.id);
+
+            if (topic.id === topicId) {
+                return ancestorIds;
+            }
+
+            for (const childType in topic.childrenByType) {
+                const children = topic.childrenByType[childType];
+                if (!children) {
+                    continue;
+                }
+
+                for (const child of children) {
+                    const match = visit(child, [...ancestorIds, topic.id]);
+                    if (match) {
+                        return match;
+                    }
+                }
+            }
+
+            return null;
+        };
+
+        return visit(rootTopic, []) ?? [];
+    }
+
+    private revealTopicPath(
+        sheet: NonNullable<XMindDocument['sheets'][number]>,
+        topicId: string
+    ): void {
+        const ancestorIds = this.findTopicAncestorIds(sheet.rootTopic, topicId);
+        if (ancestorIds.length === 0) {
+            return;
+        }
+
+        const expandedTopicIds = this.getExpandedTopicIds(sheet.id);
+        const collapsedTopicIds = this.getCollapsedTopicIds(sheet.id);
+        for (const ancestorId of ancestorIds) {
+            expandedTopicIds.add(ancestorId);
+            collapsedTopicIds.delete(ancestorId);
+        }
+    }
+
+    private centerTopicInViewport(topicId: string): void {
+        if (!this.view) {
+            return;
+        }
+
+        const topicBounds = this.view.getTopicBounds(topicId);
+        if (!topicBounds) {
+            return;
+        }
+
+        const baseOffset = this.getBaseOffset(this.zoomScale);
+        if (!baseOffset) {
+            return;
+        }
+
+        const topicCenterX = (topicBounds.minX + topicBounds.maxX) / 2;
+        const topicCenterY = (topicBounds.minY + topicBounds.maxY) / 2;
+        this.fitMode = false;
+        this.panOffsetX =
+            this.canvas.clientWidth / 2 -
+            baseOffset.x -
+            topicCenterX * this.zoomScale;
+        this.panOffsetY =
+            this.canvas.clientHeight / 2 -
+            baseOffset.y -
+            topicCenterY * this.zoomScale;
+        this.applyTransform();
+    }
+
+    private focusRenderedTopic(topicId: string): void {
+        this.ownerWindow.requestAnimationFrame(() => {
+            if (this.destroyed) {
+                return;
+            }
+
+            const topicNode = Array.from(
+                this.canvas.querySelectorAll<SVGGElement>('.xmind-topic')
+            ).find((node) => node.dataset.topicId === topicId);
+            topicNode?.focus({ preventScroll: true });
+        });
+    }
+
+    private updateSearchResultLabel(
+        sheet: NonNullable<XMindDocument['sheets'][number]> | null
+    ): void {
+        if (!sheet || !this.searchQuery.trim()) {
+            this.searchResultLabel.textContent = '0/0';
+            return;
+        }
+
+        const matches = this.getSearchMatches(sheet);
+        if (matches.length === 0) {
+            this.searchResultLabel.textContent = '0/0';
+            return;
+        }
+
+        const index = this.searchMatchIndexBySheet.get(sheet.id) ?? 0;
+        this.searchResultLabel.textContent = `${index + 1}/${matches.length}`;
+    }
+
+    private updateSearchQuery(value: string): void {
+        this.searchQuery = value;
+        const sheet = this.getActiveSheet();
+        if (!sheet) {
+            this.updateSearchResultLabel(null);
+            return;
+        }
+
+        this.searchMatchIndexBySheet.set(sheet.id, 0);
+        const matches = this.getSearchMatches(sheet);
+        const firstMatch = matches[0];
+        if (firstMatch) {
+            this.selectedTopicIdBySheet.set(sheet.id, firstMatch);
+            this.revealTopicPath(sheet, firstMatch);
+        }
+        this.renderSheet(sheet, {
+            fitToView: false,
+            preserveViewport: true,
+        });
+        if (firstMatch) {
+            this.centerTopicInViewport(firstMatch);
+        }
+    }
+
+    private moveSearchMatch(direction: -1 | 1): void {
+        const sheet = this.getActiveSheet();
+        if (!sheet) {
+            return;
+        }
+
+        const matches = this.getSearchMatches(sheet);
+        if (matches.length === 0) {
+            this.updateSearchResultLabel(sheet);
+            return;
+        }
+
+        const currentIndex = this.searchMatchIndexBySheet.get(sheet.id) ?? 0;
+        const nextIndex =
+            (currentIndex + direction + matches.length) % matches.length;
+        this.searchMatchIndexBySheet.set(sheet.id, nextIndex);
+        const nextMatch = matches[nextIndex];
+        this.selectedTopicIdBySheet.set(sheet.id, nextMatch);
+        this.revealTopicPath(sheet, nextMatch);
+        this.renderSheet(sheet, {
+            fitToView: false,
+            preserveViewport: true,
+        });
+        this.centerTopicInViewport(nextMatch);
+    }
+
+    private toggleSearch(): void {
+        this.isSearchVisible = !this.isSearchVisible;
+        this.root.classList.toggle('has-search', this.isSearchVisible);
+        this.searchPanel.hidden = !this.isSearchVisible;
+        this.searchToggleButton.setAttribute(
+            'aria-pressed',
+            String(this.isSearchVisible)
+        );
+        this.updateSearchResultLabel(this.getActiveSheet());
+        if (this.isSearchVisible) {
+            this.ownerWindow.requestAnimationFrame(() => {
+                this.searchInput.focus();
+                this.searchInput.select();
+            });
+        }
+    }
+
+    private toggleOutliner(): void {
+        this.isOutlinerVisible = !this.isOutlinerVisible;
+        this.root.classList.toggle('has-outliner', this.isOutlinerVisible);
+        this.outliner.hidden = !this.isOutlinerVisible;
+        this.outlinerToggleButton.setAttribute(
+            'aria-pressed',
+            String(this.isOutlinerVisible)
+        );
+        this.renderOutliner(this.getActiveSheet());
+    }
+
+    private topicBucketsForOutliner(topic: XMindTopicNode): XMindTopicNode[] {
+        const orderedChildren: XMindTopicNode[] = [];
+        const seenBuckets = new Set<string>();
+        const pushBucket = (bucketName: string): void => {
+            seenBuckets.add(bucketName);
+            const children = topic.childrenByType[bucketName] ?? [];
+            orderedChildren.push(...children);
+        };
+
+        pushBucket('attached');
+        pushBucket('detached');
+        pushBucket('callout');
+        for (const bucketName in topic.childrenByType) {
+            if (!seenBuckets.has(bucketName)) {
+                pushBucket(bucketName);
+            }
+        }
+
+        return orderedChildren;
+    }
+
+    private isOutlinerTopicExpanded(
+        sheetId: string,
+        topic: XMindTopicNode
+    ): boolean {
+        if (topic.children.length === 0) {
+            return false;
+        }
+
+        if (this.getCollapsedTopicIds(sheetId).has(topic.id)) {
+            return false;
+        }
+
+        if (this.getExpandedTopicIds(sheetId).has(topic.id)) {
+            return true;
+        }
+
+        return topic.branch !== FOLDED_TOPIC_BRANCH;
+    }
+
+    private appendOutlinerTopic(
+        list: HTMLOListElement,
+        sheet: NonNullable<XMindDocument['sheets'][number]>,
+        topic: XMindTopicNode,
+        depth: number,
+        selectedTopicId: string | null,
+        searchMatchTopicIds: ReadonlySet<string>,
+        currentSearchTopicId: string | null
+    ): void {
+        const item = createElement(
+            this.ownerDocument,
+            'li',
+            'xmind-native-outliner-item'
+        );
+        item.dataset.depth = String(depth);
+
+        const row = createElement(
+            this.ownerDocument,
+            'div',
+            'xmind-native-outliner-row'
+        );
+        const children = this.topicBucketsForOutliner(topic);
+        const hasChildren = children.length > 0;
+        const isExpanded = this.isOutlinerTopicExpanded(sheet.id, topic);
+        const hiddenDescendantCount =
+            hasChildren && !isExpanded ? countTopicDescendants(topic) : 0;
+        item.classList.toggle('has-children', hasChildren);
+        item.classList.toggle('is-expanded', hasChildren && isExpanded);
+        item.classList.toggle('is-collapsed', hasChildren && !isExpanded);
+        item.classList.toggle('is-leaf', !hasChildren);
+
+        const disclosure = createElement(
+            this.ownerDocument,
+            'button',
+            'xmind-native-outliner-disclosure'
+        );
+        disclosure.type = 'button';
+        if (hasChildren) {
+            disclosure.textContent = isExpanded ? '▾' : '▸';
+            disclosure.title = isExpanded
+                ? this.translator.t('collapseTopic', { title: topic.title })
+                : this.translator.t('expandTopicHiddenChildren', {
+                      title: topic.title,
+                      count: countTopicDescendants(topic),
+                  });
+            disclosure.setAttribute(
+                'aria-label',
+                isExpanded
+                    ? this.translator.t('collapseTopic', {
+                          title: topic.title,
+                      })
+                    : this.translator.t('expandTopicHiddenChildren', {
+                          title: topic.title,
+                          count: countTopicDescendants(topic),
+                      })
+            );
+            disclosure.setAttribute('aria-expanded', String(isExpanded));
+            disclosure.addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.toggleTopic(sheet.id, topic.id, isExpanded);
+            });
+        } else {
+            disclosure.classList.add('is-leaf');
+            disclosure.textContent = '▪';
+            disclosure.setAttribute('aria-hidden', 'true');
+            disclosure.tabIndex = -1;
+        }
+        row.appendChild(disclosure);
+
+        const button = createElement(
+            this.ownerDocument,
+            'button',
+            'xmind-native-outliner-topic'
+        );
+        button.type = 'button';
+        button.title = topic.title;
+        button.dataset.topicId = topic.id;
+        button.dataset.depth = String(depth);
+        const title = createElement(
+            this.ownerDocument,
+            'span',
+            'xmind-native-outliner-topic-title'
+        );
+        title.textContent = topic.title;
+        button.appendChild(title);
+        if (hiddenDescendantCount > 0) {
+            const count = createElement(
+                this.ownerDocument,
+                'span',
+                'xmind-native-outliner-count'
+            );
+            count.textContent = formatHiddenTopicCount(hiddenDescendantCount);
+            button.appendChild(count);
+        }
+        button.classList.toggle('is-selected', selectedTopicId === topic.id);
+        button.classList.toggle('is-search-match', searchMatchTopicIds.has(topic.id));
+        button.classList.toggle('is-current-search-match', currentSearchTopicId === topic.id);
+        button.addEventListener('click', () => {
+            this.selectTopic(sheet.id, topic.id, {
+                revealPath: true,
+                centerInViewport: true,
+            });
+        });
+        row.appendChild(button);
+        item.appendChild(row);
+
+        if (hasChildren && isExpanded) {
+            const childList = createElement(
+                this.ownerDocument,
+                'ol',
+                'xmind-native-outliner-children'
+            );
+            for (const child of children) {
+                this.appendOutlinerTopic(
+                    childList,
+                    sheet,
+                    child,
+                    depth + 1,
+                    selectedTopicId,
+                    searchMatchTopicIds,
+                    currentSearchTopicId
+                );
+            }
+            item.appendChild(childList);
+        }
+
+        list.appendChild(item);
+    }
+
+    private renderOutliner(
+        sheet: NonNullable<XMindDocument['sheets'][number]> | null
+    ): void {
+        if (!this.isOutlinerVisible) {
+            return;
+        }
+
+        if (!sheet) {
+            this.outliner.replaceChildren();
+            return;
+        }
+
+        const title = createElement(
+            this.ownerDocument,
+            'h1',
+            'xmind-native-outliner-title'
+        );
+        title.textContent = sheet.rootTopic.title;
+        const list = createElement(
+            this.ownerDocument,
+            'ol',
+            'xmind-native-outliner-list'
+        );
+        const searchMatches = this.getSearchMatches(sheet);
+        const searchMatchTopicIds = new Set(searchMatches);
+        const currentSearchTopicId = this.currentSearchTopicId(
+            sheet,
+            searchMatches
+        );
+        const rootChildren = this.topicBucketsForOutliner(sheet.rootTopic);
+        const outlinerTopics =
+            rootChildren.length > 0 ? rootChildren : [sheet.rootTopic];
+        for (const topic of outlinerTopics) {
+            this.appendOutlinerTopic(
+                list,
+                sheet,
+                topic,
+                0,
+                this.selectedTopicIdBySheet.get(sheet.id) ?? null,
+                searchMatchTopicIds,
+                currentSearchTopicId
+            );
+        }
+        this.outliner.replaceChildren(title, list);
     }
 
     private getExpandedTopicIds(sheetId: string): Set<string> {
@@ -447,6 +1100,57 @@ export class XMindRenderAdapter {
         const collapsedTopicIds = new Set<string>();
         this.collapsedTopicIdsBySheet.set(sheetId, collapsedTopicIds);
         return collapsedTopicIds;
+    }
+
+    private getSheetById(
+        sheetId: string
+    ): NonNullable<XMindDocument['sheets'][number]> | null {
+        return (
+            this.documentModel?.sheets.find((item) => item.id === sheetId) ??
+            null
+        );
+    }
+
+    private getActiveSheet(): NonNullable<XMindDocument['sheets'][number]> | null {
+        const sheetId = this.getActiveSheetId();
+        return sheetId ? this.getSheetById(sheetId) : null;
+    }
+
+    private selectTopic(
+        sheetId: string,
+        topicId: string,
+        options: TopicSelectionOptions = {}
+    ): void {
+        const sheet = this.documentModel?.sheets.find(
+            (item) => item.id === sheetId
+        );
+        if (!sheet || this.destroyed) {
+            return;
+        }
+
+        if (
+            this.selectedTopicIdBySheet.get(sheetId) === topicId &&
+            !options.revealPath &&
+            !options.centerInViewport &&
+            !options.focusTopic
+        ) {
+            return;
+        }
+
+        this.selectedTopicIdBySheet.set(sheetId, topicId);
+        if (options.revealPath) {
+            this.revealTopicPath(sheet, topicId);
+        }
+        this.renderSheet(sheet, {
+            fitToView: false,
+            preserveViewport: true,
+        });
+        if (options.centerInViewport) {
+            this.centerTopicInViewport(topicId);
+        }
+        if (options.focusTopic) {
+            this.focusRenderedTopic(topicId);
+        }
     }
 
     private toggleTopic(
@@ -647,7 +1351,7 @@ export class XMindRenderAdapter {
             'div',
             'xmind-native-error'
         );
-        errorEl.textContent = `XMind 渲染失败：${message}`;
+        errorEl.textContent = this.translator.t('renderFailed', { message });
         this.canvas.replaceChildren(errorEl);
         this.emit('map-ready', false);
         this.options.onError?.(error);

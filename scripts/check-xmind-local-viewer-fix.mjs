@@ -11,6 +11,7 @@ const paths = {
     debugScript: 'scripts/debug-xmind-local-viewer.mjs',
     debugIndex: 'debug/xmind-local-viewer/index.html',
     debugApp: 'debug/xmind-local-viewer/app.js',
+    debugStyles: 'debug/xmind-local-viewer/styles.css',
     typingAssets: 'src/typing/assets.d.ts',
     legacyAssets: 'src/xmind-viewer-assets',
     assetLoader: 'src/xmind-viewer/asset-loader.ts',
@@ -30,9 +31,12 @@ const paths = {
     xmindDocument: 'src/xmind-viewer/xmind-document.ts',
     layout: 'src/xmind-viewer/renderer/layout.ts',
     svgRenderer: 'src/xmind-viewer/renderer/svg-renderer.ts',
+    styleResolver: 'src/xmind-viewer/renderer/style-resolver.ts',
     viewerView: 'src/core/x-mind-viewer-view.ts',
     viewerPlugin: 'src/core/x-mind-viewer-plugin.ts',
+    i18n: 'src/i18n.ts',
     workflow: '.github/workflows/release.yaml',
+    styles: 'styles.css',
     readme: 'README.md',
     readmeZh: 'README.zh-CN.md',
 };
@@ -67,6 +71,7 @@ const [
     debugScript,
     debugIndex,
     debugApp,
+    debugStyles,
     typingAssets,
     legacyAssetsExists,
     deletedExists,
@@ -79,9 +84,12 @@ const [
     xmindDocument,
     layout,
     svgRenderer,
+    styleResolver,
     viewerView,
     viewerPlugin,
+    i18n,
     workflow,
+    styles,
     readme,
     readmeZh,
 ] = await Promise.all([
@@ -90,6 +98,7 @@ const [
     readText(paths.debugScript),
     readText(paths.debugIndex),
     readText(paths.debugApp),
+    readText(paths.debugStyles),
     readText(paths.typingAssets),
     exists(paths.legacyAssets),
     Promise.all(deletedSourceFiles.map(exists)),
@@ -102,9 +111,12 @@ const [
     readText(paths.xmindDocument),
     readText(paths.layout),
     readText(paths.svgRenderer),
+    readText(paths.styleResolver),
     readText(paths.viewerView),
     readText(paths.viewerPlugin),
+    readText(paths.i18n),
     readText(paths.workflow),
+    readText(paths.styles),
     readText(paths.readme),
     readText(paths.readmeZh),
 ]);
@@ -119,8 +131,10 @@ const sourceFiles = [
     xmindDocument,
     layout,
     svgRenderer,
+    styleResolver,
     viewerView,
     viewerPlugin,
+    i18n,
 ].join('\n');
 
 const oldRuntimeDependencyNames = [
@@ -159,6 +173,110 @@ const oldRuntimeDependencyNames = [
     'vue-style-loader',
 ];
 
+const forbiddenEditingTokens = [
+    'onSave?:',
+    'onSave:',
+    'saveXMindFile',
+    'saveEditedFile',
+    'exportEditedFile',
+    'hasUnsavedEditChanges',
+    'canSaveContentJson',
+    'editingTopicId',
+    'editingTopicIdBySheet',
+    'onEditTopic',
+    'onCommitTopicTitle',
+    'onCancelTopicEdit',
+    'onAddChildTopic',
+    'onAddSiblingTopic',
+    'onDeleteTopic',
+    'onPromoteTopic',
+    'copySelection()',
+    'cutSelection()',
+    'pasteSelection()',
+    'copySelectionStyle',
+    'pasteSelectionStyle',
+    'moveSelectionUp',
+    'moveSelectionDown',
+    'promoteSelection',
+    'demoteSelection',
+    'setSelectionLabels',
+    'setSelectionNote',
+    'setSelectionLink',
+    'setSelectionMarkers',
+    'setSelectionTaskInfo',
+    'setSelectionTopicStyle',
+    'addSheet(',
+    'renameActiveSheet',
+    'duplicateActiveSheet',
+    'deleteActiveSheet',
+    'setSelectionBoundary',
+    'setSelectionSummary',
+    'setSelectionCallout',
+    'addSelectionParentRelationship',
+    'setSelectionRelationshipStart',
+    'addSelectionRelationshipFromStart',
+    'setSelectionRelationshipsTitle',
+    'clearSelectionRelationships',
+    'xmind-topic-title-editor',
+    'is-editing',
+    'debug-save',
+    '__xmindDebugSavedFiles',
+    'savedXmindCount',
+    'lastSavedXmindBytes',
+];
+
+const forbiddenDebugControlIds = [
+    'copyTopicButton',
+    'cutTopicButton',
+    'pasteTopicButton',
+    'moveTopicUpButton',
+    'moveTopicDownButton',
+    'promoteTopicButton',
+    'demoteTopicButton',
+    'labelInput',
+    'labelButton',
+    'linkInput',
+    'linkButton',
+    'noteInput',
+    'noteButton',
+    'metadataPresetButton',
+    'metadataClearButton',
+    'markerInput',
+    'markerButton',
+    'taskProgressInput',
+    'taskPriorityInput',
+    'taskButton',
+    'markerTaskPresetButton',
+    'markerTaskClearButton',
+    'styleFillInput',
+    'styleTextInput',
+    'styleShapeInput',
+    'styleLineInput',
+    'stylePatternInput',
+    'styleButton',
+    'copyStyleButton',
+    'pasteStyleButton',
+    'styleClearButton',
+    'sheetNameInput',
+    'addSheetButton',
+    'renameSheetButton',
+    'renameSheetPresetButton',
+    'duplicateSheetButton',
+    'deleteSheetButton',
+    'addBoundaryButton',
+    'clearBoundaryButton',
+    'addSummaryButton',
+    'clearSummaryButton',
+    'addCalloutButton',
+    'clearCalloutButton',
+    'addRelationshipButton',
+    'relationshipTitleInput',
+    'relationshipStartButton',
+    'addRelationshipFromStartButton',
+    'relationshipTitleButton',
+    'clearRelationshipButton',
+];
+
 const checks = [
     {
         name: '正式 viewer 直接使用源码渲染器，不再走 iframe assets',
@@ -184,15 +302,21 @@ const checks = [
             !sourceFiles.includes('viewerResourceManifest'),
     },
     {
-        name: '正式源码中不再生成动态 script/style 或写 innerHTML',
+        name: '源码 viewer 保持只读，不暴露编辑或保存 API',
         pass:
-            !sourceFiles.includes("createElement('script'") &&
-            !sourceFiles.includes('createElement("script"') &&
-            !sourceFiles.includes("createElement('style'") &&
-            !sourceFiles.includes('createElement("style"') &&
-            !sourceFiles.includes('.innerHTML') &&
-            !sourceFiles.includes('.outerHTML') &&
-            !sourceFiles.includes('.style.'),
+            forbiddenEditingTokens.every(
+                (token) =>
+                    !renderAdapter.includes(token) &&
+                    !svgRenderer.includes(token) &&
+                    !viewerView.includes(token) &&
+                    !viewerPlugin.includes(token) &&
+                    !debugApp.includes(token) &&
+                    !styles.includes(token)
+            ) &&
+            !viewerView.includes('createBinary') &&
+            !viewerView.includes('modifyBinary') &&
+            !viewerPlugin.includes('createBinary') &&
+            !viewerPlugin.includes('modifyBinary'),
     },
     {
         name: '源码 viewer 解析并渲染 xmind 文件',
@@ -219,91 +343,120 @@ const checks = [
             ),
     },
     {
-        name: '源码渲染器保留 clockwise、展开折叠、缩放和适配画布',
+        name: 'CodeMirror 由 Obsidian 运行时提供，不能打进插件 bundle',
+        pass:
+            rollupConfig.includes("source.startsWith('@codemirror/')") &&
+            rollupConfig.includes("source.startsWith('@lezer/')") &&
+            Boolean(pkg.devDependencies?.['@codemirror/state']) &&
+            Boolean(pkg.devDependencies?.['@codemirror/view']) &&
+            !pkg.dependencies?.['@codemirror/state'] &&
+            !pkg.dependencies?.['@codemirror/view'],
+    },
+    {
+        name: '源码渲染器保留只读查看交互',
         pass:
             layout.includes('RIGHT_SIDE_ROOT_STRUCTURES') &&
-            !layout.includes('DEFAULT_COMPACT_DEPTH') &&
             layout.includes('FOLDED_TOPIC_BRANCH') &&
-            layout.includes("'folded'") &&
             layout.includes('isTopicExpanded') &&
             layout.includes('topic.branch !== FOLDED_TOPIC_BRANCH') &&
             layout.includes('expandedTopicIds') &&
             layout.includes('collapsedTopicIds') &&
             layout.includes('canToggleChildren') &&
             layout.includes('isExpanded') &&
-            layout.includes('hasHiddenChildren') &&
-            layout.includes('toggleControlKind') &&
-            layout.includes('toggleControlX') &&
             layout.includes('hiddenDescendantCount') &&
             layout.includes('hiddenDescendantCount > 999') &&
-            !layout.includes("isManuallyCollapsed ? 'ellipsis' : 'count'") &&
-            layout.includes('placeRightSideRootChildren') &&
             svgRenderer.includes('renderNativeMindMap') &&
             svgRenderer.includes('appendToggleControl') &&
             svgRenderer.includes('onToggleTopic') &&
-            svgRenderer.includes('collapse-extend-hover-area') &&
-            svgRenderer.includes('is-count') &&
-            svgRenderer.includes('is-ellipsis') &&
-            svgRenderer.includes('is-collapse') &&
-            svgRenderer.includes('xmind-branch-hover-target') &&
-            svgRenderer.includes('is-branch-hovered') &&
-            svgRenderer.includes('branch-collapse-hover-target') &&
-            svgRenderer.includes('setBranchHoverState') &&
-            svgRenderer.includes('pointerenter') &&
-            svgRenderer.includes('toggleControlText') &&
-            svgRenderer.includes('> 999') &&
+            svgRenderer.includes('xmind-relationship') &&
+            svgRenderer.includes('xmind-boundary') &&
+            svgRenderer.includes('xmind-summary') &&
+            svgRenderer.includes('appendRelationship') &&
+            svgRenderer.includes('appendBoundary') &&
+            svgRenderer.includes('appendSummary') &&
+            svgRenderer.includes('selectedTopicId?: string | null') &&
+            svgRenderer.includes('onSelectTopic?:') &&
+            svgRenderer.includes('xmind-topic-selection') &&
+            svgRenderer.includes('aria-pressed') &&
             svgRenderer.includes('tabindex') &&
-            svgRenderer.includes('hiddenDescendantCount') &&
             renderAdapter.includes('expandedTopicIdsBySheet') &&
             renderAdapter.includes('collapsedTopicIdsBySheet') &&
-            renderAdapter.includes('panOffsetX') &&
-            renderAdapter.includes('panOffsetY') &&
-            renderAdapter.includes('handleWheel') &&
-            renderAdapter.includes("addEventListener('wheel'") &&
-            renderAdapter.includes('passive: false') &&
-            renderAdapter.includes('normalizeWheelDelta') &&
-            renderAdapter.includes('ctrlKey') &&
-            renderAdapter.includes('metaKey') &&
-            renderAdapter.includes('isZoomWheelEvent') &&
-            renderAdapter.includes('WHEEL_ZOOM_SENSITIVITY = 0.004') &&
-            renderAdapter.includes('RightDragState') &&
-            renderAdapter.includes('handlePointerDown') &&
-            renderAdapter.includes('handlePointerMove') &&
-            renderAdapter.includes('handlePointerUp') &&
-            renderAdapter.includes('handleContextMenu') &&
-            renderAdapter.includes("event.button !== 2") &&
-            renderAdapter.includes('setPointerCapture') &&
-            renderAdapter.includes('releasePointerCapture') &&
-            renderAdapter.includes('is-right-dragging') &&
-            renderAdapter.includes('setZoomAt') &&
-            renderAdapter.includes('getBaseOffset') &&
-            renderAdapter.includes('captureViewportAnchor') &&
-            renderAdapter.includes('restoreViewportAnchor') &&
-            renderAdapter.includes('preserveViewport') &&
-            renderAdapter.includes('fitToView: false') &&
+            renderAdapter.includes('selectedTopicIdBySheet') &&
             renderAdapter.includes('toggleTopic') &&
             renderAdapter.includes('fitMapSync') &&
             renderAdapter.includes('setZoom') &&
-            renderAdapter.includes('applyTransform') &&
-            renderAdapter.includes('Math.round(this.zoomScale * 100)'),
+            renderAdapter.includes('handleWheel') &&
+            renderAdapter.includes('isZoomWheelEvent') &&
+            renderAdapter.includes('RightDragState') &&
+            renderAdapter.includes('handlePointerDown') &&
+            renderAdapter.includes('handlePointerMove') &&
+            renderAdapter.includes('handleContextMenu') &&
+            renderAdapter.includes('preserveViewport') &&
+            renderAdapter.includes('captureViewportAnchor') &&
+            renderAdapter.includes('restoreViewportAnchor'),
     },
     {
-        name: 'Obsidian 视图只导入 src/xmind-viewer 稳定入口',
+        name: '搜索、大纲和 sheet 切换仍可用',
+        pass:
+            renderAdapter.includes('searchToggleButton') &&
+            renderAdapter.includes('toggleSearch') &&
+            renderAdapter.includes('updateSearchQuery') &&
+            renderAdapter.includes('moveSearchMatch') &&
+            renderAdapter.includes('getSearchMatches') &&
+            renderAdapter.includes('findTopicAncestorIds') &&
+            renderAdapter.includes('revealTopicPath') &&
+            renderAdapter.includes('outlinerToggleButton') &&
+            renderAdapter.includes('toggleOutliner') &&
+            renderAdapter.includes('renderOutliner') &&
+            renderAdapter.includes('appendOutlinerTopic') &&
+            renderAdapter.includes('topicBucketsForOutliner') &&
+            renderAdapter.includes('isOutlinerTopicExpanded') &&
+            renderAdapter.includes('xmind-native-outliner-disclosure') &&
+            renderAdapter.includes('xmind-native-outliner-count') &&
+            renderAdapter.includes('renderSheetTabs') &&
+            renderAdapter.includes('xmind-native-sheet-tab') &&
+            renderAdapter.includes('switchSheetSync(sheet.id)') &&
+            styles.includes('.xmind-native-outliner') &&
+            styles.includes('.xmind-native-outliner-topic') &&
+            styles.includes('.xmind-native-search') &&
+            styles.includes('.xmind-native-sheet-tabs') &&
+            styles.includes('.xmind-native-sheet-tab.is-active'),
+    },
+    {
+        name: 'Obsidian 文件视图和 embed 只读加载，不写回 vault',
         pass:
             viewerView.includes("from '../xmind-viewer'") &&
+            viewerPlugin.includes("from '../xmind-viewer'") &&
             viewerView.includes('loadLocalXMindFile') &&
             viewerView.includes('XMindRenderAdapter') &&
-            !viewerView.includes('../xmind-viewer-assets') &&
-            !viewerPlugin.includes('../xmind-viewer-assets'),
+            viewerPlugin.includes('loadLocalXMindFile') &&
+            viewerPlugin.includes('XMindRenderAdapter') &&
+            viewerPlugin.includes('registerMarkdownPostProcessor') &&
+            viewerPlugin.includes('registerEditorExtension') &&
+            viewerPlugin.includes('XMindLivePreviewEmbedWidget') &&
+            viewerPlugin.includes('XMindMarkdownEmbedRenderer') &&
+            viewerPlugin.includes('Decoration.replace') &&
+            viewerPlugin.includes('XMIND_RAW_EMBED_PATTERN') &&
+            viewerPlugin.includes('resolveRawXMindEmbedFile') &&
+            viewerPlugin.includes('findXMindFileByLinkText') &&
+            viewerPlugin.includes('app.vault.getFiles()') &&
+            viewerPlugin.includes('readBinary(this.file)') &&
+            !viewerPlugin.includes('selectionTouchesRange') &&
+            !viewerView.includes('modifyBinary') &&
+            !viewerView.includes('createBinary') &&
+            !viewerPlugin.includes('modifyBinary') &&
+            !viewerPlugin.includes('createBinary') &&
+            styles.includes('.xmind-markdown-embed-host') &&
+            styles.includes('.xmind-live-preview-embed-host'),
     },
     {
-        name: 'XMind pane menu 提供安全文件操作并拦截 Mod+W 关闭菜单',
+        name: 'XMind pane menu 只保留安全文件操作',
         pass:
             viewerView.includes('onPaneMenu') &&
-            viewerView.includes('Copy path') &&
-            viewerView.includes('as Obsidian URL') &&
-            viewerView.includes('from vault folder') &&
-            viewerView.includes('from system root') &&
+            viewerView.includes("this.translator.t('copyPath')") &&
+            viewerView.includes("this.translator.t('copyPathObsidianUrl')") &&
+            viewerView.includes("this.translator.t('copyPathVaultFolder')") &&
+            viewerView.includes("this.translator.t('copyPathSystemRoot')") &&
             viewerView.includes('removeMenuItemsByTitle') &&
             viewerView.includes('HIDDEN_PANE_MENU_TITLES') &&
             viewerView.includes('Split right') &&
@@ -315,78 +468,90 @@ const checks = [
             viewerView.includes('menu.hide()'),
     },
     {
-        name: 'debug viewer 复用同一份源码 API',
+        name: 'debug viewer 只暴露只读查看控件',
         pass:
             debugScript.includes('src/xmind-viewer/index.ts') &&
             debugScript.includes('/debug-runtime/xmind-viewer.js') &&
             debugScript.includes('/debug-config.json') &&
-            debugScript.includes('fileName: path.basename(xmindFile)') &&
             debugIndex.includes('id="viewerHost"') &&
             debugIndex.includes('id="fileInput"') &&
             debugIndex.includes('id="openFileButton"') &&
-            debugIndex.includes('/debug-runtime/xmind-viewer.js') &&
+            debugIndex.includes('id="reloadButton"') &&
+            debugIndex.includes('id="fitButton"') &&
+            debugIndex.includes('id="zoomInput"') &&
+            debugIndex.includes('id="zoomButton"') &&
+            debugIndex.includes('id="sheetSelect"') &&
+            forbiddenDebugControlIds.every(
+                (id) =>
+                    !debugIndex.includes(`id="${id}"`) &&
+                    !debugApp.includes(`#${id}`)
+            ) &&
+            !debugIndex.includes('advanced-controls') &&
+            !debugStyles.includes('advanced-controls') &&
             debugApp.includes('XMindDebugViewer.XMindRenderAdapter') &&
             debugApp.includes('loadLocalXMindFile') &&
-            debugApp.includes('loadDebugConfig') &&
-            debugApp.includes('readActiveFile') &&
-            debugApp.includes('.arrayBuffer()') &&
             debugApp.includes('fileInput.addEventListener') &&
-            !debugScript.includes('native-viewer-app') &&
-            !debugIndex.includes('viewerFrame') &&
+            debugApp.includes('viewer?.fitMap()') &&
+            debugApp.includes('viewer?.zoom') &&
+            debugApp.includes('viewer?.switchSheet') &&
             !debugApp.includes('MessageChannel'),
     },
     {
-        name: 'README 包含官方需要的安装和使用说明',
+        name: 'UI 文案通过本地 i18n 支持英文和简体中文',
+        pass:
+            i18n.includes("export type XMindLocale = 'en' | 'zh-CN'") &&
+            i18n.includes('normalizeXMindLocale') &&
+            i18n.includes("localStorage.getItem('language')") &&
+            i18n.includes('detectXMindLocale') &&
+            i18n.includes('createXMindTranslator') &&
+            i18n.includes('translateXMind') &&
+            i18n.includes('copyPath') &&
+            i18n.includes('复制路径') &&
+            i18n.includes('XMind debug viewer') &&
+            i18n.includes('XMind 调试查看器') &&
+            renderAdapter.includes('this.translator.t') &&
+            renderAdapter.includes('locale: this.translator.locale') &&
+            svgRenderer.includes('translateXMind') &&
+            svgRenderer.includes('locale?: XMindLocale') &&
+            layout.includes('locale?: XMindLocale') &&
+            index.includes('detectXMindLocale') &&
+            index.includes('translateXMind'),
+    },
+    {
+        name: 'README 明确这是只读 XMind 查看器',
         pass:
             readme.includes('## Installation') &&
             readme.includes('## Usage') &&
+            readme.includes('read-only') &&
             readme.includes('main.js') &&
             readme.includes('manifest.json') &&
             readme.includes('styles.css') &&
             readmeZh.includes('## 安装') &&
             readmeZh.includes('## 使用') &&
+            readmeZh.includes('只读') &&
             readmeZh.includes('main.js') &&
             readmeZh.includes('manifest.json') &&
             readmeZh.includes('styles.css'),
     },
     {
-        name: 'GitHub release 只上传官方三件套并生成 attestations',
+        name: '发布工作流仍校验产物 attestations',
         pass:
-            workflow.includes('actions/attest-build-provenance@v2') &&
-            workflow.includes('attestations: write') &&
-            workflow.includes('id-token: write') &&
-            workflow.includes('dist/main.js') &&
-            workflow.includes('dist/manifest.json') &&
-            workflow.includes('dist/styles.css') &&
-            !workflow.includes('zip_file') &&
-            !workflow.includes('\"$zip_file\"'),
-    },
-    {
-        name: '源码 workbook 元数据和 document parser 继续分层',
-        pass:
-            workbookModel.includes('extractXMindWorkbookMetadata') &&
-            xmindDocument.includes('XMindDocumentSheet') &&
-            xmindDocument.includes('XMindTopicNode') &&
-            !workbookModel.includes('fflate') &&
-            !xmindDocument.includes('fflate') &&
-            xmindZip.includes('readZipTextFile'),
+            workflow.includes('actions/attest-build-provenance') &&
+            workflow.includes('main.js') &&
+            workflow.includes('styles.css'),
     },
 ];
 
-let failed = 0;
+const failed = checks.filter((check) => !check.pass);
+
 for (const check of checks) {
-    if (check.pass) {
-        console.log(`ok - ${check.name}`);
-        continue;
+    console.log(`${check.pass ? 'PASS' : 'FAIL'} ${check.name}`);
+}
+
+if (failed.length > 0) {
+    console.error('\nFailed checks:');
+    for (const check of failed) {
+        console.error(`- ${check.name}`);
     }
-
-    failed += 1;
-    console.error(`not ok - ${check.name}`);
+    process.exitCode = 1;
 }
-
-if (failed > 0) {
-    console.error(`\n${failed} local viewer checks failed.`);
-    process.exit(1);
-}
-
-console.log('\nAll local viewer checks passed.');

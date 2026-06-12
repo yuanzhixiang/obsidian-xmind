@@ -14,7 +14,9 @@
         "format:viewer": "pnpm exec prettier --write debug/xmind-local-viewer/app.js \"src/xmind-viewer/**/*.ts\" scripts/debug-xmind-local-viewer.mjs scripts/check-xmind-local-viewer-fix.mjs",
         "check:local-viewer": "node scripts/check-xmind-local-viewer-fix.mjs",
         "debug:xmind": "node scripts/debug-xmind-local-viewer.mjs",
+        "inspect:xmind": "node scripts/inspect-xmind-package.mjs",
         "package": "pnpm build && node scripts/package-plugin.mjs",
+        "preview:obsidian": "pnpm build && node scripts/preview-obsidian.mjs",
         "release": "pnpm package",
         "deploy:prod": "node scripts/deploy-prod.mjs",
         "start-obsidian": "node scripts/start-obsidian.mjs",
@@ -23,6 +25,8 @@
     },
     "keywords": [],
     "devDependencies": {
+        "@codemirror/state": "6.5.0",
+        "@codemirror/view": "6.38.6",
         "@rollup/plugin-alias": "^5.1.0",
         "@rollup/plugin-commonjs": "^26.0.1",
         "@rollup/plugin-json": "^6.1.0",

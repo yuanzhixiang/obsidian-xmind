@@ -12,6 +12,15 @@ import { visualizer } from 'rollup-plugin-visualizer';
 const pluginId = 'xmind-maps';
 const name = pluginId;
 const developmentPluginDir = `test-vault/.obsidian/plugins/${pluginId}`;
+const externalModules = new Set(['obsidian', 'electron']);
+
+function isExternalModule(source) {
+    return (
+        externalModules.has(source) ||
+        source.startsWith('@codemirror/') ||
+        source.startsWith('@lezer/')
+    );
+}
 
 function mimeTypeFor(filePath) {
     const extension = path.extname(filePath).toLowerCase();
@@ -78,7 +87,7 @@ function cleanOutputPlugin(outputDir) {
 
 const baseConfig = {
     input: 'src/main.ts',
-    external: ['obsidian', 'electron'],
+    external: isExternalModule,
     plugins: [
         inlineAssetPlugin(),
         json(),

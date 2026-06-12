@@ -1,5 +1,4 @@
 import {
-    App,
     FileView,
     IconName,
     Menu,
@@ -11,6 +10,11 @@ import {
 } from 'obsidian';
 import { XMindViewerPlugin } from './x-mind-viewer-plugin';
 import { XMIND_VIEW_TYPE } from '../typing/types';
+import {
+    createXMindTranslator,
+    detectXMindLocale,
+    XMindTranslator,
+} from '../i18n';
 import {
     getViewerErrorMessage,
     loadLocalXMindFile,
@@ -105,10 +109,17 @@ function hasMenuItems(menu: Menu): boolean {
 export class XMindViewerView extends FileView {
     plugin: XMindViewerPlugin;
     private viewer: XMindRenderAdapter | null = null;
-    constructor(leaf: WorkspaceLeaf, app: App, plugin: XMindViewerPlugin) {
+    private translator: XMindTranslator;
+    constructor(leaf: WorkspaceLeaf, plugin: XMindViewerPlugin) {
         super(leaf);
-        this.app = app;
         this.plugin = plugin;
+        this.translator = createXMindTranslator(
+            detectXMindLocale(
+                this.app,
+                this.contentEl.ownerDocument.defaultView,
+                this.contentEl.ownerDocument
+            )
+        );
     }
 
     getViewType(): string {
@@ -121,9 +132,11 @@ export class XMindViewerView extends FileView {
 
     getDisplayText(): string {
         if (this.file) {
-            return `XMind view: ${this.file.basename}`;
+            return this.translator.t('viewTitle', {
+                name: this.file.basename,
+            });
         }
-        return 'No file open';
+        return this.translator.t('noFileOpen');
     }
 
     onPaneMenu(menu: Menu, source: string): void {
@@ -142,6 +155,13 @@ export class XMindViewerView extends FileView {
     }
 
     async onLoadFile(file: TFile): Promise<void> {
+        this.translator = createXMindTranslator(
+            detectXMindLocale(
+                this.app,
+                this.contentEl.ownerDocument.defaultView,
+                this.contentEl.ownerDocument
+            )
+        );
         const loadedFile = await loadLocalXMindFile(
             await this.app.vault.readBinary(file)
         );
@@ -151,6 +171,7 @@ export class XMindViewerView extends FileView {
             el: this.contentEl,
             file: loadedFile.binary,
             onError: (error): void => this.showError(error),
+            locale: this.translator.locale,
         });
     }
 
@@ -161,7 +182,7 @@ export class XMindViewerView extends FileView {
 
     private addCopyPathMenuItem(menu: Menu, file: TFile): void {
         menu.addItem((item) => {
-            item.setTitle('Copy path').setIcon('copy');
+            item.setTitle(this.translator.t('copyPath')).setIcon('copy');
 
             const submenu = getSubmenu(item);
             if (!submenu) {
@@ -177,14 +198,14 @@ export class XMindViewerView extends FileView {
 
     private addCopyPathSubmenuItems(menu: Menu, file: TFile): void {
         menu.addItem((item) => {
-            item.setTitle('as Obsidian URL')
+            item.setTitle(this.translator.t('copyPathObsidianUrl'))
                 .setIcon('link')
                 .onClick(() => {
                     void this.copyPath(file, 'obsidian-url');
                 });
         });
         menu.addItem((item) => {
-            item.setTitle('from vault folder')
+            item.setTitle(this.translator.t('copyPathVaultFolder'))
                 .setIcon('folder')
                 .onClick(() => {
                     void this.copyPath(file, 'vault');
@@ -192,7 +213,7 @@ export class XMindViewerView extends FileView {
         });
         menu.addItem((item) => {
             const systemPath = this.getSystemPath(file);
-            item.setTitle('from system root')
+            item.setTitle(this.translator.t('copyPathSystemRoot'))
                 .setIcon('hard-drive')
                 .setDisabled(systemPath === null)
                 .onClick(() => {
@@ -233,12 +254,14 @@ export class XMindViewerView extends FileView {
     private async copyPath(file: TFile, kind: CopyPathKind): Promise<void> {
         const text = this.getPathText(file, kind);
         if (text === null) {
-            new Notice('System path is not available for this vault.');
+            new Notice(this.translator.t('systemPathUnavailable'));
             return;
         }
 
-        await this.contentEl.win.navigator.clipboard.writeText(text);
-        new Notice('Copied path');
+        await this.contentEl.ownerDocument.defaultView?.navigator.clipboard.writeText(
+            text
+        );
+        new Notice(this.translator.t('copiedPath'));
     }
 
     private getPathText(file: TFile, kind: CopyPathKind): string | null {
@@ -274,7 +297,9 @@ export class XMindViewerView extends FileView {
         this.contentEl.empty();
         this.contentEl.createDiv({
             cls: 'xmind-viewer-error',
-            text: `XMind 渲染失败：${getViewerErrorMessage(error)}`,
+            text: this.translator.t('renderFailed', {
+                message: getViewerErrorMessage(error),
+            }),
         });
     }
 }

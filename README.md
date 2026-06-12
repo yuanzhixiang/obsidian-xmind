@@ -1,12 +1,13 @@
 # XMind Maps
 
-XMind Maps lets you open local `.xmind` files directly in Obsidian as read-only mind maps.
+XMind Maps lets you open local `.xmind` files directly in Obsidian and embed them inside Markdown notes as a read-only viewer.
 
 [简体中文](./README.zh-CN.md)
 
 ## What You Can Do
 
 - Open `.xmind` files from your Obsidian vault.
+- Embed `.xmind` files in notes with Obsidian syntax such as `![[Map.xmind]]`.
 - View mind maps without leaving Obsidian.
 - Switch between sheets in the same XMind file.
 - Zoom, fit the map to the pane, and pan around large maps.
@@ -36,7 +37,13 @@ Then open Obsidian settings, go to Community plugins, and enable XMind Maps.
 
 Put a `.xmind` file anywhere inside your Obsidian vault, then open it from the file explorer. Obsidian will open it in an XMind Maps view instead of a Markdown editor.
 
-The viewer is read-only. You can inspect the mind map, expand branches, zoom, pan, switch sheets, and copy paths, but the plugin does not edit or save `.xmind` files.
+To embed a mind map in a Markdown note, use the normal Obsidian embed syntax:
+
+```markdown
+![[Map.xmind]]
+```
+
+The embedded viewer supports the same read-only canvas navigation. XMind Maps does not edit, save, or write back to the original `.xmind` file.
 
 ## Viewer Controls
 
@@ -70,8 +77,8 @@ Depending on your Obsidian version, `Copy path` may include:
 
 ## Notes
 
-- XMind Maps does not edit, save, or export XMind files.
-- XMind Maps does not render `.xmind` files inside Markdown notes.
+- XMind Maps is read-only and does not edit, save, or export XMind files.
+- Opening or embedding a mind map will not modify the original `.xmind` file.
 - Visual details may not match every XMind desktop or web theme exactly.
 - If a file does not open, confirm it is a valid `.xmind` file and try opening it again from the Obsidian file explorer.
 

@@ -1,12 +1,13 @@
 # XMind Maps
 
-XMind Maps 是一个 Obsidian 插件，可以在 Obsidian 里直接打开本地 `.xmind` 文件，并以只读方式查看思维导图。
+XMind Maps 是一个 Obsidian 只读查看插件，可以在 Obsidian 里直接打开本地 `.xmind` 文件，也可以把它嵌入到 Markdown 笔记中。
 
 [English](./README.md)
 
 ## 你可以用它做什么
 
 - 在 Obsidian vault 里直接打开 `.xmind` 文件。
+- 使用 `![[思维导图.xmind]]` 这样的 Obsidian 原生语法嵌入 `.xmind` 文件。
 - 不离开 Obsidian 就能查看 XMind 思维导图。
 - 在同一个 XMind 文件的多个 sheet 之间切换。
 - 缩放、适配画布，并在大图里上下左右移动。
@@ -36,7 +37,13 @@ XMind Maps 是一个 Obsidian 插件，可以在 Obsidian 里直接打开本地 
 
 把 `.xmind` 文件放到你的 Obsidian vault 里，然后从 Obsidian 文件列表中打开它。Obsidian 会用 XMind Maps 的视图打开文件，而不是把它当作 Markdown 文本编辑。
 
-这个视图是只读的。你可以查看思维导图、展开分支、缩放、移动画布、切换 sheet、复制文件路径，但插件不会编辑或保存 `.xmind` 文件。
+如果要在 Markdown 笔记中嵌入思维导图，使用 Obsidian 原生嵌入语法：
+
+```markdown
+![[思维导图.xmind]]
+```
+
+嵌入的 viewer 支持同样的只读画布浏览。XMind Maps 不会编辑、保存或写回原始 `.xmind` 文件。
 
 ## 查看器控件
 
@@ -70,8 +77,8 @@ XMind Maps 是一个 Obsidian 插件，可以在 Obsidian 里直接打开本地 
 
 ## 注意事项
 
-- XMind Maps 不编辑、不保存、不导出 XMind 文件。
-- XMind Maps 不会把 `.xmind` 文件嵌入渲染到 Markdown 笔记里。
+- XMind Maps 是只读查看器，不编辑、不保存，也不导出 XMind 文件。
+- 打开或嵌入思维导图不会修改原始 `.xmind` 文件。
 - 视觉细节不保证和每个版本的 XMind 桌面端或网页版完全一致。
 - 如果文件打不开，请确认它是有效的 `.xmind` 文件，并从 Obsidian 文件列表中重新打开。
 

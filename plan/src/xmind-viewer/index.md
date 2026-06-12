@@ -10,6 +10,7 @@
 - `loadLocalXMindFile()` / `normalizeLocalXMindFile()`：本地 `.xmind` 文件预处理。
 - `XMindViewerStateStore` 和状态类型：viewer 事件状态投影。
 - `extractXMindWorkbookMetadata()` 和 workbook 类型：轻量元数据提取。
+- `detectXMindLocale()`、`createXMindTranslator()`、`translateXMind()` 和 locale 类型：共享用户界面多语言能力，供正式 Obsidian 视图与 debug 页复用。
 - `normalizeInvisibleCentralTopicTextColor()`：中心主题兼容修复。
 - `getViewerErrorMessage()` 和 `XMindViewerError`：错误处理。
 

@@ -12,13 +12,17 @@
 - 视图创建 `XMindRenderAdapter`，把 `contentEl` 和文件二进制交给源码 viewer 直接渲染。
 - 以上 viewer API 均从 `src/xmind-viewer/index.ts` 稳定入口导入，视图不直接依赖 viewer 内部子模块。
 - 用户切换或关闭文件时，旧 `XMindRenderAdapter` 必须销毁。
+- 视图创建 viewer 前调用 `detectXMindLocale()` 获取当前 Obsidian 界面语言，并把 locale 传入 `XMindRenderAdapter`。当前支持英文和简体中文，语言检测优先使用 Obsidian localStorage 中的 `language`。
+- `XMindViewerView` 构造函数必须遵循 Obsidian `FileView` 生命周期：只从 `super(leaf)` 获取 `this.app`、`contentEl` 和文件视图状态，不手动覆盖 `this.app`；跨版本 DOM 访问使用 `contentEl.ownerDocument.defaultView`，不依赖非标准 `contentEl.win/doc`。
 
 ## 信息架构与主要交互
 
 - 视图本身不提供额外 Obsidian 工具栏，保持文件视图的纯渲染体验。
 - viewer 内部提供缩放、适配画布和 sheet 标签等只读控件。
+- viewer 不提供保存按钮，也不提供任何编辑入口；打开文件只用于查看。
 - 视图标题显示当前文件 basename，便于 Obsidian 标签页识别。
 - 视图的 pane menu 使用 Obsidian 默认菜单渲染方式，不强制改成插件自绘 DOM 菜单。
+- 视图标题、pane menu、复制路径 Notice 和错误态都必须使用 `src/i18n.ts` 的 translator，不在视图里硬编码单一语言。
 - 视图的 pane menu 隐藏 Obsidian 默认的 `Split right` 和 `Split down` 项，避免 XMind 只读 viewer 暴露不需要的分栏入口。
 - 视图的 pane menu 补齐文件操作：
     - `Copy path`：优先使用 Obsidian 运行时支持的 submenu，包含 `as Obsidian URL`、`from vault folder`、`from system root`；如果运行时不支持 submenu，则顶层 `Copy path` 复制 vault 相对路径。
@@ -38,7 +42,8 @@
 - 不访问 `https://www.xmind.app/embed-viewer` 或其它远程 viewer。
 - Obsidian 正式安装只依赖 `main.js`、`manifest.json`、`styles.css` 三个发布资产。
 - 文件二进制只在本地 Obsidian WebView 内处理。
-- 预处理只修改传入 viewer 的内存副本，不写回 vault 文件。
+- 加载预处理只修改传入 viewer 的内存副本，不写回 vault 文件。
+- 视图不得调用 `createBinary()`、`modifyBinary()` 或其它 vault 写入 API 修改 `.xmind` 文件。
 - 不得把 `.xmind` 原文件交给 Obsidian markdown view 打开；Markdown 源码保存会把二进制 zip 当文本写回，破坏 XMind 文件。
 - `Copy path` 只写入系统剪贴板，不上传路径；`from system root` 仅在 adapter 暴露 `getFullPath()` 时可用。
 

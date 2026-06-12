@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>XMind 本地调试查看器</title>
+        <title>XMind debug viewer</title>
         <script>
             window.__xmindDebugEarlyErrors = [];
             window.addEventListener('error', function (event) {
@@ -31,45 +31,69 @@
     </head>
     <body>
         <main class="shell">
-            <header class="toolbar" aria-label="调试工具栏">
-                <section class="identity" aria-label="当前文件">
+            <header
+                class="toolbar"
+                aria-label="Debug toolbar"
+                data-i18n-aria-label="debugToolbar"
+            >
+                <section
+                    class="identity"
+                    aria-label="Current file"
+                    data-i18n-aria-label="currentFile"
+                >
                     <span
                         class="status-dot"
                         id="statusDot"
                         aria-hidden="true"
                     ></span>
                     <div>
-                        <h1>XMind 调试查看器</h1>
-                        <p id="fileLabel">等待加载默认文件</p>
+                        <h1 data-i18n="appTitle">XMind debug viewer</h1>
+                        <p id="fileLabel" data-i18n="loadingDefaultFile">
+                            Waiting for default file
+                        </p>
                     </div>
                 </section>
 
-                <section class="controls" aria-label="查看器控制">
+                <section
+                    class="controls"
+                    aria-label="Viewer controls"
+                    data-i18n-aria-label="viewerControl"
+                >
                     <input
                         id="fileInput"
                         type="file"
                         accept=".xmind,application/octet-stream"
                         hidden
                     />
-                    <button id="openFileButton" type="button">打开文件</button>
-                    <button id="reloadButton" type="button">重新加载</button>
-                    <button id="fitButton" type="button">适配画布</button>
+                    <button id="openFileButton" type="button" data-i18n="openFile">
+                        Open file
+                    </button>
+                    <button id="reloadButton" type="button" data-i18n="reload">
+                        Reload
+                    </button>
+                    <button id="fitButton" type="button" data-i18n="fitCanvas">
+                        Fit canvas
+                    </button>
                     <label class="field">
-                        <span>缩放</span>
+                        <span data-i18n="zoom">Zoom</span>
                         <input
                             id="zoomInput"
                             type="number"
-                            min="50"
-                            max="500"
+                            min="20"
+                            max="250"
                             step="10"
                             value="100"
                         />
                     </label>
-                    <button id="zoomButton" type="button">应用</button>
+                    <button id="zoomButton" type="button" data-i18n="apply">
+                        Apply
+                    </button>
                     <label class="field field-wide">
                         <span>Sheet</span>
                         <select id="sheetSelect">
-                            <option value="">等待加载</option>
+                            <option value="" data-i18n="sheetSelectLoading">
+                                Waiting for load
+                            </option>
                         </select>
                     </label>
                 </section>
@@ -79,12 +103,23 @@
                 <div
                     class="viewer-frame-wrap xmind-viewer-content"
                     id="viewerHost"
-                    aria-label="XMind 渲染区域"
+                    aria-label="XMind render area"
+                    data-i18n-aria-label="viewerLabel"
                 ></div>
-                <aside class="log-panel" aria-label="事件日志">
+                <aside
+                    class="log-panel"
+                    aria-label="Event log"
+                    data-i18n-aria-label="eventLog"
+                >
                     <div class="log-heading">
-                        <h2>事件</h2>
-                        <button id="clearLogButton" type="button">清空</button>
+                        <h2 data-i18n="events">Events</h2>
+                        <button
+                            id="clearLogButton"
+                            type="button"
+                            data-i18n="clear"
+                        >
+                            Clear
+                        </button>
                     </div>
                     <ol id="eventLog"></ol>
                 </aside>

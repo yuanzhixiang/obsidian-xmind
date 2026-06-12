@@ -14,6 +14,7 @@
 - `renderer/svg-renderer.ts`：把布局模型渲染成 SVG，并提供缩放/居中 transform。
 - `viewer-events.ts`：集中维护 viewer event 类型。
 - `viewer-state.ts`：把 `map-ready`、`sheets-load`、`sheet-switch`、`zoom-change` 等事件投影成源码层状态。
+- `../i18n.ts`：维护用户界面英文/简体中文文案和 Obsidian 语言检测逻辑，本目录通过稳定入口复用，不在各模块散落硬编码 UI 文案。
 - `theme-loader.ts`：维护 `content.json` 中 XMind theme 的源码级兼容规则。
 - `workbook-model.ts`：从 `content.json` 提取轻量 workbook/sheet 元数据。
 - `file-loader.ts`：读取 `.xmind` zip，组合 workbook 元数据提取与 theme 兼容修复。

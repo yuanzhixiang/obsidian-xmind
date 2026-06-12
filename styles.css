@@ -4,7 +4,7 @@
     height: 100%;
     min-height: 0;
     overflow: hidden;
-    background: var(--background-primary);
+    background: var(--background-primary, #ffffff);
 }
 
 .xmind-viewer-error {
@@ -19,6 +19,41 @@
     line-height: 1.5;
 }
 
+.xmind-markdown-embed-host {
+    display: flex;
+    width: 100%;
+    height: min(72vh, 720px);
+    min-height: 360px;
+    margin: 1em 0;
+    overflow: hidden;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    background: var(--background-primary, #ffffff);
+}
+
+.xmind-live-preview-embed-host {
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.xmind-markdown-embed-loading,
+.xmind-markdown-embed-error {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    padding: 16px;
+    color: var(--text-muted);
+    font-size: var(--font-ui-medium);
+    line-height: 1.5;
+    text-align: center;
+}
+
+.xmind-markdown-embed-error {
+    background: var(--background-secondary);
+}
+
 .xmind-native-viewer {
     position: relative;
     flex: 1 1 auto;
@@ -27,7 +62,7 @@
     min-height: 0;
     overflow: hidden;
     color: var(--text-normal);
-    background: var(--background-primary);
+    background: var(--background-primary, #ffffff);
     font-family: var(--font-interface);
 }
 
@@ -41,6 +76,11 @@
     touch-action: none;
 }
 
+.xmind-native-viewer.has-outliner .xmind-native-canvas {
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .xmind-native-canvas.is-right-dragging {
     cursor: grabbing;
 }
@@ -50,6 +90,43 @@
     width: 100%;
     height: 100%;
     background: #ffffff;
+}
+
+.xmind-topic {
+    cursor: pointer;
+}
+
+.xmind-topic-selection {
+    pointer-events: none;
+}
+
+.xmind-topic:focus-visible .xmind-topic-selection,
+.xmind-topic.is-selected .xmind-topic-selection {
+    stroke-width: 3;
+}
+
+.xmind-topic.is-search-match > rect:first-child,
+.xmind-topic.is-search-match > ellipse:first-child,
+.xmind-topic.is-search-match > polygon:first-child,
+.xmind-topic.is-search-match > path:first-child {
+    stroke: #ffbf00;
+    stroke-width: 3;
+}
+
+.xmind-topic.is-current-search-match > rect:first-child,
+.xmind-topic.is-current-search-match > ellipse:first-child,
+.xmind-topic.is-current-search-match > polygon:first-child,
+.xmind-topic.is-current-search-match > path:first-child {
+    stroke: #ff7a00;
+    stroke-width: 4;
+}
+
+.xmind-topic:focus-visible > rect:first-child,
+.xmind-topic:focus-visible > ellipse:first-child,
+.xmind-topic:focus-visible > polygon:first-child,
+.xmind-topic:focus-visible > path:first-child {
+    stroke: #66c7ff;
+    stroke-width: 3;
 }
 
 .xmind-collapse-extend {
@@ -89,10 +166,16 @@
     stroke-width: 2.6;
 }
 
+.xmind-relationship-title {
+    pointer-events: none;
+    user-select: none;
+}
+
 .xmind-native-status {
     position: absolute;
     top: 18px;
     left: 20px;
+    z-index: 3;
     max-width: min(520px, calc(100% - 40px));
     color: var(--text-muted);
     font-size: var(--font-ui-smaller);
@@ -103,13 +186,14 @@
     position: absolute;
     right: 18px;
     bottom: 18px;
+    z-index: 3;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 8px;
     border: 1px solid var(--background-modifier-border);
     border-radius: 10px;
-    background: var(--background-primary);
+    background: var(--background-primary, #ffffff);
     box-shadow: 0 10px 30px rgba(31, 35, 40, 0.12);
 }
 
@@ -119,7 +203,7 @@
     border: 1px solid var(--background-modifier-border);
     border-radius: 7px;
     color: var(--text-normal);
-    background: var(--background-primary);
+    background: var(--background-primary, #ffffff);
     font: inherit;
     font-size: var(--font-ui-smaller);
     cursor: pointer;
@@ -127,6 +211,12 @@
 
 .xmind-native-toolbar button:hover {
     background: var(--background-modifier-hover);
+}
+
+.xmind-native-toolbar button[aria-pressed="true"] {
+    color: var(--text-on-accent);
+    border-color: var(--interactive-accent);
+    background: var(--interactive-accent);
 }
 
 .xmind-native-toolbar span {
@@ -137,20 +227,292 @@
     font-weight: var(--font-semibold);
 }
 
-.xmind-native-sheet {
+.xmind-native-search {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-sizing: border-box;
+    max-width: min(480px, calc(100% - 36px));
+    padding: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 10px;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    box-shadow: 0 10px 30px rgba(31, 35, 40, 0.12);
+}
+
+.xmind-native-search[hidden] {
+    display: none;
+}
+
+.xmind-native-search input {
+    width: 180px;
+    min-width: 0;
+    height: 30px;
+    padding: 0 9px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 7px;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    font: inherit;
+    font-size: var(--font-ui-smaller);
+}
+
+.xmind-native-search button {
+    height: 30px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 7px;
+    color: var(--text-normal);
+    background: var(--background-primary);
+    font: inherit;
+    font-size: var(--font-ui-smaller);
+    cursor: pointer;
+}
+
+.xmind-native-search button:hover {
+    background: var(--background-modifier-hover);
+}
+
+.xmind-native-search span {
+    min-width: 38px;
+    color: var(--text-muted);
+    text-align: center;
+    font-size: var(--font-ui-smaller);
+    font-weight: var(--font-semibold);
+}
+
+.xmind-native-sheet-tabs {
     position: absolute;
     bottom: 18px;
     left: 18px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
     max-width: min(420px, calc(100% - 220px));
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px;
+    font-size: var(--font-ui-smaller);
+    scrollbar-width: none;
+}
+
+.xmind-native-sheet-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.xmind-native-sheet-tab {
+    flex: 0 0 auto;
+    max-width: 180px;
+    height: 30px;
     overflow: hidden;
-    padding: 7px 14px;
+    padding: 0 14px;
+    border: 0;
     border-radius: 999px;
-    color: var(--text-normal);
-    background: var(--background-modifier-hover);
+    color: var(--text-muted);
+    background: transparent;
+    font: inherit;
     font-size: var(--font-ui-smaller);
     font-weight: var(--font-semibold);
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: pointer;
+}
+
+.xmind-native-sheet-tab:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+}
+
+.xmind-native-sheet-tab.is-active {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+    cursor: default;
+}
+
+.xmind-native-outliner {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding: 84px max(24px, calc((100% - 760px) / 2)) 96px;
+    border: 0;
+    border-radius: 0;
+    color: var(--text-normal);
+    background: var(--background-primary, #ffffff);
+    box-shadow: none;
+}
+
+.xmind-native-outliner[hidden] {
+    display: none;
+}
+
+.xmind-native-outliner-title {
+    margin: 0 0 28px;
+    color: var(--text-normal);
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0;
+}
+
+.xmind-native-outliner-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.xmind-native-outliner-item {
+    position: relative;
+    min-width: 0;
+}
+
+.xmind-native-outliner-list .xmind-native-outliner-list {
+    position: relative;
+    gap: 7px;
+    margin-top: 5px;
+    margin-left: 0;
+    padding-left: 30px;
+    border-left: 0;
+}
+
+.xmind-native-outliner-list .xmind-native-outliner-list::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    bottom: 4px;
+    left: 9px;
+    border-left: 1px dashed var(--background-modifier-border, #d2d7dd);
+    opacity: 0.95;
+    pointer-events: none;
+}
+
+.xmind-native-outliner-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 28px;
+    min-width: 0;
+}
+
+.xmind-native-outliner-disclosure {
+    display: inline-grid;
+    flex: 0 0 18px;
+    width: 18px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    color: var(--text-normal);
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+    line-height: 1;
+    place-items: center;
+    cursor: pointer;
+}
+
+.xmind-native-outliner-disclosure:hover {
+    background: var(--background-modifier-hover);
+}
+
+.xmind-native-outliner-disclosure.is-leaf {
+    color: var(--text-normal);
+    font-size: 10px;
+    opacity: 0.9;
+    cursor: default;
+}
+
+.xmind-native-outliner-disclosure.is-leaf:hover {
+    background: transparent;
+}
+
+.xmind-native-outliner-topic {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    padding: 1px 4px;
+    border: 0;
+    border-radius: 4px;
+    color: var(--text-normal);
+    background: transparent;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.55;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.xmind-native-outliner-item.has-children
+    > .xmind-native-outliner-row
+    .xmind-native-outliner-topic-title {
+    font-weight: 600;
+}
+
+.xmind-native-outliner-item[data-depth="0"]
+    > .xmind-native-outliner-row
+    .xmind-native-outliner-topic-title {
+    font-weight: 700;
+}
+
+.xmind-native-outliner-item.is-leaf
+    > .xmind-native-outliner-row
+    .xmind-native-outliner-topic-title {
+    font-weight: 400;
+}
+
+.xmind-native-outliner-topic-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.xmind-native-outliner-count {
+    display: inline-grid;
+    flex: 0 0 auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    color: var(--text-muted);
+    background: var(--background-modifier-hover, #eef0f2);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    place-items: center;
+}
+
+.xmind-native-outliner-topic:hover,
+.xmind-native-outliner-topic.is-selected {
+    background: var(--background-modifier-hover);
+}
+
+.xmind-native-outliner-topic.is-search-match {
+    background: rgba(255, 191, 0, 0.16);
+}
+
+.xmind-native-outliner-topic.is-current-search-match {
+    background: rgba(255, 122, 0, 0.22);
+}
+
+.xmind-native-outliner-topic.is-selected {
+    color: var(--text-accent);
+    font-weight: var(--font-semibold);
 }
 
 .xmind-native-error {
