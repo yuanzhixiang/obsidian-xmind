@@ -27,7 +27,7 @@
 - XMind pane menu 必须提供复制路径入口，不得提供会把 `.xmind` 原文件交给 markdown view 的入口，必须隐藏 `Split right` / `Split down`，并在菜单打开时拦截 `Mod+W` 关闭菜单。
 - debug viewer 必须复用同一份 `src/xmind-viewer/index.ts` 源码 API，并支持页面内选择其它本地 `.xmind` 文件测试。
 - UI 文案必须通过 `src/i18n.ts` 支持英文和简体中文；正式 Obsidian 视图需要检测当前语言并传给 `XMindRenderAdapter`，adapter 需要继续把 locale 传给 SVG renderer 和 layout。
-- Obsidian Markdown embed 必须支持 `![[*.xmind]]`：插件入口需要保留 `registerMarkdownPostProcessor()`、`MarkdownRenderChild` 生命周期管理、`metadataCache.getFirstLinkpathDest()` 链接解析、按 vault 内唯一 `.xmind` 文件名兜底匹配、阅读视图原始 `![[*.xmind]]` 段落识别、同一套 `loadLocalXMindFile()` / `XMindRenderAdapter` 渲染，以及 Live Preview 的 `registerEditorExtension()` / `Decoration.replace()` 路径。embed 也必须保持只读，不写回 vault。
+- Obsidian Markdown embed 必须支持 `![[*.xmind]]`：插件入口需要优先注册 `app.embedRegistry.registerExtensions(['xmind'], creator)`，通过 `XMindEmbedComponent.loadFile()` 接入 Obsidian 原生 embed 管线；同时保留 `registerMarkdownPostProcessor()`、`MarkdownRenderChild` 生命周期管理、`metadataCache.getFirstLinkpathDest()` 链接解析、按 vault 内唯一 `.xmind` 文件名兜底匹配、阅读视图原始 `![[*.xmind]]` 段落识别、清理原生 embed 解析残留的纯 `]` / `]]` 文本节点、同一套 `loadLocalXMindFile()` / `XMindRenderAdapter` 渲染，以及 Live Preview 的 `registerEditorExtension()` / `Decoration.replace()` 路径。embed 也必须保持只读，不写回 vault。
 - README 必须包含官方要求的安装和使用说明，并明确这是只读 XMind viewer。
 - GitHub Release workflow 必须只上传 `main.js`、`manifest.json`、`styles.css`，并为三件套生成 artifact attestations。
 - `pnpm inspect:xmind` 和 `plan/fixtures/xmind-parity/README.md` 必须保留，确保 Xmind parity fixture 建设和脱敏审计口径不被删除；根目录 `fixtures/` 不保存内容。

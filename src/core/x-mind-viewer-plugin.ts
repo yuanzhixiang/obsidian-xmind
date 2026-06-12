@@ -1,5 +1,6 @@
 import {
     App,
+    Component,
     editorInfoField,
     editorLivePreviewField,
     MarkdownFileInfo,
@@ -39,6 +40,7 @@ const XMIND_LIVE_PREVIEW_EMBED_PATTERN =
 const XMIND_RAW_EMBED_PATTERN =
     /^!\[\[([^\]\n]+?\.xmind(?:#[^\]\n]*)?(?:\|[^\]\n]*)?)\]\]$/i;
 const XMIND_RAW_EMBED_SELECTOR = 'p';
+const STRAY_EMBED_BRACKET_PATTERN = /^\s*\]{1,2}\s*$/;
 const XMIND_EMBED_SOURCE_ATTRIBUTES = [
     'src',
     'data-src',
@@ -51,6 +53,77 @@ const XMIND_EMBED_SOURCE_ATTRIBUTES = [
     'title',
     'aria-label',
 ];
+
+interface XMindEmbedInfo {
+    app: App;
+    containerEl: HTMLDivElement;
+    depth: number;
+    displayMode: boolean;
+    linktext: string;
+    showInline: boolean;
+    sourcePath: string;
+}
+
+interface XMindEmbedComponentLike extends Component {
+    loadFile(): unknown;
+}
+
+interface XMindEmbedRegistry {
+    registerExtensions(
+        extensions: string[],
+        creator: (
+            info: XMindEmbedInfo,
+            file: TFile,
+            subpath: string
+        ) => XMindEmbedComponentLike
+    ): void;
+    unregisterExtensions?(extensions: string[]): void;
+}
+
+function getXMindEmbedRegistry(app: App): XMindEmbedRegistry | null {
+    const registry = (app as { embedRegistry?: unknown }).embedRegistry;
+    if (
+        typeof registry === 'object' &&
+        registry !== null &&
+        'registerExtensions' in registry &&
+        typeof registry.registerExtensions === 'function'
+    ) {
+        return registry as XMindEmbedRegistry;
+    }
+
+    return null;
+}
+
+function isWhitespaceTextNode(node: ChildNode | null): boolean {
+    return (
+        node?.nodeType === Node.TEXT_NODE &&
+        (node.textContent ?? '').trim() === ''
+    );
+}
+
+function removeStrayBracketTextNode(node: ChildNode | null): void {
+    if (
+        node?.nodeType === Node.TEXT_NODE &&
+        STRAY_EMBED_BRACKET_PATTERN.test(node.textContent ?? '')
+    ) {
+        node.remove();
+    }
+}
+
+function removeAdjacentStrayEmbedBracketText(element: HTMLElement): void {
+    let previousSibling = element.previousSibling;
+    while (isWhitespaceTextNode(previousSibling)) {
+        previousSibling = previousSibling?.previousSibling ?? null;
+    }
+
+    let nextSibling = element.nextSibling;
+    while (isWhitespaceTextNode(nextSibling)) {
+        nextSibling = nextSibling?.nextSibling ?? null;
+    }
+
+    removeStrayBracketTextNode(previousSibling);
+    removeStrayBracketTextNode(nextSibling);
+}
 
 function safeDecodeURIComponent(value: string): string {
     try {
@@ -244,6 +317,86 @@ class XMindMarkdownEmbedRenderer extends MarkdownRenderChild {
     private async loadEmbed(): Promise<void> {
         this.containerEl.empty();
         this.containerEl.addClass('xmind-markdown-embed-host');
+        this.containerEl.createDiv({
+            cls: 'xmind-markdown-embed-loading',
+            text: this.translator.t('viewerLoading'),
+        });
+
+        try {
+            const loadedFile = await loadLocalXMindFile(
+                await this.app.vault.readBinary(this.file)
+            );
+            if (this.isUnloaded) {
+                return;
+            }
+
+            this.containerEl.empty();
+            this.viewer = new XMindRenderAdapter({
+                el: this.containerEl,
+                file: loadedFile.binary,
+                onError: (error): void => this.showError(error),
+                locale: this.translator.locale,
+            });
+        } catch (error) {
+            if (!this.isUnloaded) {
+                this.showError(error);
+            }
+        }
+    }
+
+    private showError(error: unknown): void {
+        this.viewer?.destroy();
+        this.viewer = null;
+        this.containerEl.empty();
+        this.containerEl.createDiv({
+            cls: 'xmind-markdown-embed-error',
+            text: this.translator.t('renderFailed', {
+                message: getViewerErrorMessage(error),
+            }),
+        });
+    }
+}
+
+class XMindEmbedComponent extends Component {
+    private viewer: XMindRenderAdapter | null = null;
+    private isUnloaded = false;
+    private loadPromise: Promise<void> | null = null;
+    private readonly translator: XMindTranslator;
+
+    constructor(
+        private readonly containerEl: HTMLElement,
+        private readonly app: App,
+        private readonly file: TFile
+    ) {
+        super();
+        this.translator = createXMindTranslator(
+            detectXMindLocale(
+                app,
+                containerEl.ownerDocument.defaultView,
+                containerEl.ownerDocument
+            )
+        );
+    }
+
+    onload(): void {
+        void this.loadFile();
+    }
+
+    onunload(): void {
+        this.isUnloaded = true;
+        this.viewer?.destroy();
+        this.viewer = null;
+    }
+
+    loadFile(): void {
+        this.loadPromise ??= this.loadEmbed();
+    }
+
+    private async loadEmbed(): Promise<void> {
+        removeAdjacentStrayEmbedBracketText(this.containerEl);
+        this.containerEl.empty();
+        this.containerEl.addClass('xmind-markdown-embed-host');
+        this.containerEl.addClass('xmind-native-embed-host');
         this.containerEl.createDiv({
             cls: 'xmind-markdown-embed-loading',
             text: this.translator.t('viewerLoading'),
@@ -491,6 +644,8 @@ function createLivePreviewEmbedExtension(
 }
 
 export class XMindViewerPlugin extends Plugin {
+    private hasNativeEmbedRegistry = false;
+
     /**
      * Called when the plugin is loaded.
      *
@@ -504,6 +659,7 @@ export class XMindViewerPlugin extends Plugin {
         );
 
         this.registerExtensions(['xmind'], XMIND_VIEW_TYPE);
+        this.hasNativeEmbedRegistry = this.registerNativeXMindEmbed();
         this.registerEditorExtension(createLivePreviewEmbedExtension(this.app));
         this.registerMarkdownPostProcessor(
             (el, ctx) => this.renderXMindMarkdownEmbeds(el, ctx),
@@ -511,15 +667,36 @@ export class XMindViewerPlugin extends Plugin {
         );
     }
 
+    private registerNativeXMindEmbed(): boolean {
+        const registry = getXMindEmbedRegistry(this.app);
+        if (!registry) {
+            return false;
+        }
+
+        registry.registerExtensions(
+            [XMIND_EXTENSION],
+            (info, file) =>
+                new XMindEmbedComponent(info.containerEl, this.app, file)
+        );
+        this.register(() => {
+            registry.unregisterExtensions?.([XMIND_EXTENSION]);
+        });
+        return true;
+    }
+
     private renderXMindMarkdownEmbeds(
         el: HTMLElement,
         ctx: MarkdownPostProcessorContext
     ): void {
         const renderedElements = new Set<HTMLElement>();
-        const embedElements = [
-            ...(el.matches(XMIND_EMBED_SELECTOR) ? [el] : []),
-            ...Array.from(el.querySelectorAll<HTMLElement>(XMIND_EMBED_SELECTOR)),
-        ];
+        const embedElements = this.hasNativeEmbedRegistry
+            ? []
+            : [
+                  ...(el.matches(XMIND_EMBED_SELECTOR) ? [el] : []),
+                  ...Array.from(
+                      el.querySelectorAll<HTMLElement>(XMIND_EMBED_SELECTOR)
+                  ),
+              ];
 
         for (const embedElement of embedElements) {
             const file = resolveXMindEmbedFile(
@@ -572,6 +749,7 @@ export class XMindViewerPlugin extends Plugin {
         const host = embedElement.ownerDocument.createElement('div');
         host.classList.add('xmind-markdown-embed-host');
         embedElement.replaceWith(host);
+        removeAdjacentStrayEmbedBracketText(host);
         ctx.addChild(new XMindMarkdownEmbedRenderer(host, this.app, file));
     }
 }

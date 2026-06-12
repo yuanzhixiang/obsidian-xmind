@@ -431,6 +431,14 @@ const checks = [
             viewerView.includes('XMindRenderAdapter') &&
             viewerPlugin.includes('loadLocalXMindFile') &&
             viewerPlugin.includes('XMindRenderAdapter') &&
+            viewerPlugin.includes('getXMindEmbedRegistry') &&
+            viewerPlugin.includes('registerNativeXMindEmbed') &&
+            viewerPlugin.includes('XMindEmbedComponent') &&
+            viewerPlugin.includes('embedRegistry') &&
+            viewerPlugin.includes("registry.registerExtensions") &&
+            viewerPlugin.includes('hasNativeEmbedRegistry') &&
+            viewerPlugin.includes('removeAdjacentStrayEmbedBracketText') &&
+            viewerPlugin.includes('STRAY_EMBED_BRACKET_PATTERN') &&
             viewerPlugin.includes('registerMarkdownPostProcessor') &&
             viewerPlugin.includes('registerEditorExtension') &&
             viewerPlugin.includes('XMindLivePreviewEmbedWidget') &&
