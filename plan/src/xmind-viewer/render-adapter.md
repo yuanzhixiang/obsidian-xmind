@@ -6,9 +6,9 @@
 
 ## 输入输出
 
-- 输入：挂载容器、预处理后的 `.xmind` ArrayBuffer、错误回调、状态变化回调和可选 locale。
+- 输入：挂载容器、预处理后的 `.xmind` ArrayBuffer、错误回调、可选刷新回调、状态变化回调和可选 locale。
 - 输出：`destroy()`、`getState()`、`subscribeState()`、`getSheets()`、`getActiveSheetId()`、`getZoom()`、`fitMap()`、`zoom()`、`switchSheet()`。
-- adapter 不接收 `onSave`，不导出编辑后的文件二进制，不访问 Obsidian vault，也不写回 `.xmind`。
+- adapter 不接收 `onSave`，不导出编辑后的文件二进制，不访问 Obsidian vault，也不写回 `.xmind`。`onReload` 只返回调用方重新读取并预处理后的文件二进制，adapter 只负责重新解析和渲染。
 - adapter 不暴露 topic、sheet、boundary、summary、callout、relationship、marker、task、label、note、link 或样式编辑 API。
 - `locale` 只用于 UI 文案，不写入 `.xmind`。
 
@@ -28,7 +28,7 @@
 - macOS `Command + wheel` 也按焦点位置缩放，和 pinch 共用同一套 `setZoomAt()` 逻辑，避免触发外层页面缩放。
 - 鼠标右键按住拖拽时，画布使用 pointer capture 记录指针位移并更新 `panOffsetX/Y`；拖拽期间阻止默认右键菜单，松开或取消 pointer 后结束拖拽。
 - `deltaMode` 为 line 或 page 时会换算成像素，避免不同输入设备速度差距过大。
-- 工具栏 `+/-` 调用 `zoom()`，缩放中心为画布中心；`适配` 调用 `fitMap()` 并重新居中。
+- 工具栏 `+/-` 调用 `zoom()`，缩放中心为画布中心；`适配` 调用 `fitMap()` 并重新居中；`刷新` 调用 `onReload` 重新读取当前文件并重建 viewer 会话状态。如果刷新后的文件仍包含当前 sheet id，刷新后应留在当前 sheet。
 
 ## Sheet 与大纲
 
@@ -43,6 +43,7 @@
 
 - toolbar 提供「搜索」切换按钮，按钮使用 `aria-pressed` 表达当前状态。
 - 搜索面板作为 `.xmind-native-search` 渲染在画布右上角，支持输入关键词、回车跳到下一个、`Shift+Enter` 跳到上一个，以及按钮式上一个/下一个。
+- 当焦点位于 viewer 内部时，`Command+F` / `Ctrl+F` 必须拦截 Obsidian 或浏览器默认查找，打开 viewer 自己的搜索面板并聚焦搜索输入框；焦点不在 viewer 内时不得抢普通 Markdown 编辑器的查找快捷键。
 - 搜索范围覆盖当前 sheet 内 topic 标题、label、note 和 href。
 - 如果命中 topic 位于折叠子树内，adapter 会在本次会话内临时展开其祖先路径，让当前搜索结果真实可见。
 - 搜索跳转必须保持当前 zoom，只调整 pan，把当前命中 topic 带到画布中心附近。搜索不会修改源文件里的 `branch` 字段。
@@ -66,3 +67,4 @@
 - 点击或键盘 `Enter`/`Space` 选择 topic 时，把 topic id 写入 `selectedTopicIdBySheet`。选择态只用于当前 viewer UI，不代表源文件有任何选中字段变化。
 - wheel 监听必须注册在 `.xmind-native-canvas`，使用 `{ passive: false }` 才能阻止外层页面滚动、页面缩放或系统横向导航抢走手势。
 - pointer 和 contextmenu 监听必须注册在 `.xmind-native-canvas`，右键拖拽只改变 pan offset，不重新布局、不调用适配画布。
+- `Command+F` / `Ctrl+F` 查找快捷键只在 `.xmind-native-viewer` 内部 keydown 冒泡时处理；为了让空白画布点击后也能响应快捷键，`.xmind-native-canvas` 必须可聚焦。

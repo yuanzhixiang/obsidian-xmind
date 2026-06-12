@@ -328,6 +328,10 @@ const checks = [
             fileLoader.includes('readZipTextFile') &&
             fileLoader.includes('replaceZipTextFile') &&
             fileLoader.includes('normalizeInvisibleCentralTopicTextColor') &&
+            themeLoader.includes('CENTRAL_TOPIC_LIGHT_TEXT_COLOR') &&
+            themeLoader.includes('relativeLuminance') &&
+            themeLoader.includes('centralTopicTextColorForFill') &&
+            themeLoader.includes('luminance < 0.35') &&
             xmindZip.includes("from 'fflate'") &&
             xmindZip.includes('unzipSync') &&
             xmindZip.includes('zipSync') &&
@@ -387,10 +391,18 @@ const checks = [
             renderAdapter.includes('setZoom') &&
             renderAdapter.includes('handleWheel') &&
             renderAdapter.includes('isZoomWheelEvent') &&
+            renderAdapter.includes('isFindHotkey') &&
+            renderAdapter.includes('handleKeyDown') &&
+            renderAdapter.includes('openSearchFromHotkey') &&
+            renderAdapter.includes('this.canvas.tabIndex = 0') &&
             renderAdapter.includes('RightDragState') &&
             renderAdapter.includes('handlePointerDown') &&
             renderAdapter.includes('handlePointerMove') &&
             renderAdapter.includes('handleContextMenu') &&
+            renderAdapter.includes('onReload?: () => Promise<ArrayBuffer>') &&
+            renderAdapter.includes('reloadButton') &&
+            renderAdapter.includes('reloadFile') &&
+            renderAdapter.includes('preferredSheetId') &&
             renderAdapter.includes('preserveViewport') &&
             renderAdapter.includes('captureViewportAnchor') &&
             renderAdapter.includes('restoreViewportAnchor'),
@@ -419,6 +431,7 @@ const checks = [
             styles.includes('.xmind-native-outliner') &&
             styles.includes('.xmind-native-outliner-topic') &&
             styles.includes('.xmind-native-search') &&
+            styles.includes('.xmind-native-canvas:focus-visible') &&
             styles.includes('.xmind-native-sheet-tabs') &&
             styles.includes('.xmind-native-sheet-tab.is-active'),
     },
@@ -429,8 +442,12 @@ const checks = [
             viewerPlugin.includes("from '../xmind-viewer'") &&
             viewerView.includes('loadLocalXMindFile') &&
             viewerView.includes('XMindRenderAdapter') &&
+            viewerView.includes('readXMindFile') &&
+            viewerView.includes('reloadCurrentFile') &&
+            viewerView.includes('onReload: (): Promise<ArrayBuffer> =>') &&
             viewerPlugin.includes('loadLocalXMindFile') &&
             viewerPlugin.includes('XMindRenderAdapter') &&
+            viewerPlugin.includes('onReload: (): Promise<ArrayBuffer> =>') &&
             viewerPlugin.includes('getXMindEmbedRegistry') &&
             viewerPlugin.includes('registerNativeXMindEmbed') &&
             viewerPlugin.includes('XMindEmbedComponent') &&
@@ -457,7 +474,8 @@ const checks = [
             !viewerPlugin.includes('modifyBinary') &&
             !viewerPlugin.includes('createBinary') &&
             styles.includes('.xmind-markdown-embed-host') &&
-            styles.includes('.xmind-live-preview-embed-host'),
+            styles.includes('.xmind-live-preview-embed-host') &&
+            styles.includes('.xmind-native-toolbar button:disabled'),
     },
     {
         name: 'XMind pane menu 只保留安全文件操作',
@@ -521,6 +539,9 @@ const checks = [
             i18n.includes('XMind 调试查看器') &&
             renderAdapter.includes('this.translator.t') &&
             renderAdapter.includes('locale: this.translator.locale') &&
+            renderAdapter.includes("this.translator.t('reload')") &&
+            i18n.includes("reload: 'Refresh'") &&
+            i18n.includes("reload: '刷新'") &&
             svgRenderer.includes('translateXMind') &&
             svgRenderer.includes('locale?: XMindLocale') &&
             layout.includes('locale?: XMindLocale') &&

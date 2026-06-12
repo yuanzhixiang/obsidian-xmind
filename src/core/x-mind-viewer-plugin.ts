@@ -403,9 +403,7 @@ class XMindEmbedComponent extends Component {
         });
 
         try {
-            const loadedFile = await loadLocalXMindFile(
-                await this.app.vault.readBinary(this.file)
-            );
+            const binary = await this.readXMindFile();
             if (this.isUnloaded) {
                 return;
             }
@@ -413,8 +411,9 @@ class XMindEmbedComponent extends Component {
             this.containerEl.empty();
             this.viewer = new XMindRenderAdapter({
                 el: this.containerEl,
-                file: loadedFile.binary,
+                file: binary,
                 onError: (error): void => this.showError(error),
+                onReload: (): Promise<ArrayBuffer> => this.readXMindFile(),
                 locale: this.translator.locale,
             });
         } catch (error) {
@@ -422,6 +421,13 @@ class XMindEmbedComponent extends Component {
                 this.showError(error);
             }
         }
+    }
+
+    private async readXMindFile(): Promise<ArrayBuffer> {
+        const loadedFile = await loadLocalXMindFile(
+            await this.app.vault.readBinary(this.file)
+        );
+        return loadedFile.binary;
     }
 
     private showError(error: unknown): void {
@@ -493,9 +499,7 @@ class XMindLivePreviewEmbedWidget extends WidgetType {
         });
 
         try {
-            const loadedFile = await loadLocalXMindFile(
-                await this.app.vault.readBinary(this.file)
-            );
+            const binary = await this.readXMindFile();
             if (this.isDestroyed) {
                 return;
             }
@@ -503,8 +507,9 @@ class XMindLivePreviewEmbedWidget extends WidgetType {
             host.empty();
             this.viewer = new XMindRenderAdapter({
                 el: host,
-                file: loadedFile.binary,
+                file: binary,
                 onError: (error): void => this.showError(host, error),
+                onReload: (): Promise<ArrayBuffer> => this.readXMindFile(),
                 locale: this.translator.locale,
             });
         } catch (error) {
@@ -512,6 +517,13 @@ class XMindLivePreviewEmbedWidget extends WidgetType {
                 this.showError(host, error);
             }
         }
+    }
+
+    private async readXMindFile(): Promise<ArrayBuffer> {
+        const loadedFile = await loadLocalXMindFile(
+            await this.app.vault.readBinary(this.file)
+        );
+        return loadedFile.binary;
     }
 
     private showError(host: HTMLElement, error: unknown): void {

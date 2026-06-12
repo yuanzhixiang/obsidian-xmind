@@ -10,6 +10,7 @@
 - 视图通过 `app.vault.readBinary(file)` 读取文件内容。
 - 视图调用 `loadLocalXMindFile()` 对内存副本执行本地兼容预处理，并保留源码层 workbook 元数据提取入口。
 - 视图创建 `XMindRenderAdapter`，把 `contentEl` 和文件二进制交给源码 viewer 直接渲染。
+- viewer 内刷新按钮通过 `XMindRenderAdapter.onReload` 回调重新读取当前 vault 文件，再把新的内存二进制交给 viewer 渲染；刷新不写回、不保存、不修改 `.xmind`。
 - 以上 viewer API 均从 `src/xmind-viewer/index.ts` 稳定入口导入，视图不直接依赖 viewer 内部子模块。
 - 用户切换或关闭文件时，旧 `XMindRenderAdapter` 必须销毁。
 - 视图创建 viewer 前调用 `detectXMindLocale()` 获取当前 Obsidian 界面语言，并把 locale 传入 `XMindRenderAdapter`。当前支持英文和简体中文，语言检测优先使用 Obsidian localStorage 中的 `language`。
@@ -18,7 +19,7 @@
 ## 信息架构与主要交互
 
 - 视图本身不提供额外 Obsidian 工具栏，保持文件视图的纯渲染体验。
-- viewer 内部提供缩放、适配画布和 sheet 标签等只读控件。
+- viewer 内部提供缩放、适配画布、刷新、搜索、大纲和 sheet 标签等只读控件。
 - viewer 不提供保存按钮，也不提供任何编辑入口；打开文件只用于查看。
 - 视图标题显示当前文件 basename，便于 Obsidian 标签页识别。
 - 视图的 pane menu 使用 Obsidian 默认菜单渲染方式，不强制改成插件自绘 DOM 菜单。

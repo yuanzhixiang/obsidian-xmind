@@ -14,6 +14,8 @@
 - 检查新结构 `theme.centralTopic.properties`。
 - 检查旧结构 `theme.topicThemeMap.centralTopic.properties`。
 - 当 `fo:color` 为 `inherited`，且中心主题填充为 `none`、`transparent`、`#fff` 或 `#ffffff` 时，将 `fo:color` 规范化为 `#000000`。
+- 当 `fo:color` 为 `inherited`，且中心主题填充为深色时，按相对亮度将 `fo:color` 规范化为 `#ffffff`，避免黑色中心主题上出现深色文字。
+- `/Users/yuanzhixiang/Desktop/202606101441 搞到钱再说.xmind` 的中心主题在文件 theme 中保存为 `svg:fill: #000000` 与 `fo:color: inherited`；原版 XMind 缩略图也是黑底白字，所以本规则只修文字色继承，不改背景色。
 
 ## 组合关系
 

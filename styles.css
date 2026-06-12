@@ -85,6 +85,11 @@
     cursor: grabbing;
 }
 
+.xmind-native-canvas:focus-visible {
+    outline: 2px solid var(--interactive-accent);
+    outline-offset: -2px;
+}
+
 .xmind-native-svg {
     display: block;
     width: 100%;
@@ -211,6 +216,11 @@
 
 .xmind-native-toolbar button:hover {
     background: var(--background-modifier-hover);
+}
+
+.xmind-native-toolbar button:disabled {
+    opacity: 0.55;
+    cursor: default;
 }
 
 .xmind-native-toolbar button[aria-pressed="true"] {

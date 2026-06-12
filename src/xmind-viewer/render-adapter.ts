@@ -25,6 +25,7 @@ export interface XMindRenderAdapterOptions {
     el: HTMLElement;
     file: ArrayBuffer;
     onError?: (error: unknown) => void;
+    onReload?: () => Promise<ArrayBuffer>;
     onStateChange?: XMindViewerStateListener;
     locale?: XMindLocale;
 }
@@ -50,6 +51,10 @@ interface ViewportAnchor {
 interface RenderSheetOptions {
     fitToView: boolean;
     preserveViewport: boolean;
+}
+
+interface OpenFileOptions {
+    preferredSheetId?: string | null;
 }
 
 interface TopicSelectionOptions {
@@ -121,6 +126,15 @@ function isZoomWheelEvent(event: WheelEvent): boolean {
     return event.ctrlKey || event.metaKey;
 }
 
+function isFindHotkey(event: KeyboardEvent): boolean {
+    return (
+        event.key.toLowerCase() === 'f' &&
+        (event.metaKey || event.ctrlKey) &&
+        !event.altKey &&
+        !event.shiftKey
+    );
+}
+
 function countTopicDescendants(topic: XMindTopicNode): number {
     return topic.children.reduce(
         (sum, child) => sum + 1 + countTopicDescendants(child),
@@ -148,6 +162,7 @@ export class XMindRenderAdapter {
     private readonly searchInput: HTMLInputElement;
     private readonly searchResultLabel: HTMLSpanElement;
     private readonly searchToggleButton: HTMLButtonElement;
+    private readonly reloadButton: HTMLButtonElement | null;
     private readonly unsubscribeInitialStateListener?: () => void;
     private documentModel: XMindDocument | null = null;
     private view: NativeMindMapView | null = null;
@@ -190,6 +205,11 @@ export class XMindRenderAdapter {
             'div',
             'xmind-native-canvas'
         );
+        this.canvas.tabIndex = 0;
+        this.canvas.setAttribute(
+            'aria-label',
+            this.translator.t('viewerLabel')
+        );
         this.status = createElement(
             this.ownerDocument,
             'div',
@@ -221,6 +241,11 @@ export class XMindRenderAdapter {
             this.translator.t('search'),
             () => this.toggleSearch()
         );
+        this.reloadButton = options.onReload
+            ? this.createToolbarButton(this.translator.t('reload'), () =>
+                  this.reloadFile()
+              )
+            : null;
 
         this.mount();
         this.ownerWindow.addEventListener('resize', this.handleResize);
@@ -233,6 +258,7 @@ export class XMindRenderAdapter {
         this.canvas.addEventListener('pointercancel', this.handlePointerUp);
         this.canvas.addEventListener('lostpointercapture', this.handlePointerUp);
         this.canvas.addEventListener('contextmenu', this.handleContextMenu);
+        this.root.addEventListener('keydown', this.handleKeyDown);
         void this.openFile(options.file).catch((error) =>
             this.showError(error)
         );
@@ -252,6 +278,7 @@ export class XMindRenderAdapter {
             this.handlePointerUp
         );
         this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
+        this.root.removeEventListener('keydown', this.handleKeyDown);
         this.view?.destroy();
         this.view = null;
         this.root.remove();
@@ -326,7 +353,19 @@ export class XMindRenderAdapter {
         this.applyTransform();
     };
 
+    private readonly handleKeyDown = (event: KeyboardEvent): void => {
+        if (!isFindHotkey(event)) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        this.openSearchFromHotkey();
+    };
+
     private readonly handlePointerDown = (event: PointerEvent): void => {
+        this.canvas.focus({ preventScroll: true });
+
         if (!this.view || event.button !== 2) {
             return;
         }
@@ -409,6 +448,7 @@ export class XMindRenderAdapter {
             this.createToolbarButton(this.translator.t('fitCanvas'), () =>
                 this.fitMapSync()
             ),
+            ...(this.reloadButton ? [this.reloadButton] : []),
             this.searchToggleButton,
             this.outlinerToggleButton
         );
@@ -465,6 +505,13 @@ export class XMindRenderAdapter {
             this.updateSearchQuery(this.searchInput.value);
         });
         this.searchInput.addEventListener('keydown', (event: KeyboardEvent) => {
+            if (isFindHotkey(event)) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.openSearchFromHotkey();
+                return;
+            }
+
             if (event.key === 'Enter') {
                 event.preventDefault();
                 this.moveSearchMatch(event.shiftKey ? -1 : 1);
@@ -489,7 +536,10 @@ export class XMindRenderAdapter {
         this.updateSearchResultLabel(null);
     }
 
-    private async openFile(file: ArrayBuffer): Promise<void> {
+    private async openFile(
+        file: ArrayBuffer,
+        options: OpenFileOptions = {}
+    ): Promise<void> {
         this.status.textContent = this.translator.t('viewerLoading');
         this.documentModel = await parseXMindDocument(file);
         this.expandedTopicIdsBySheet.clear();
@@ -499,8 +549,37 @@ export class XMindRenderAdapter {
         this.searchInput.value = '';
         this.searchMatchIndexBySheet.clear();
         this.emitSheetsLoad();
-        this.switchSheetSync(this.documentModel.sheets[0].id);
+        const preferredSheet = this.documentModel.sheets.find(
+            (sheet) => sheet.id === options.preferredSheetId
+        );
+        this.switchSheetSync(
+            preferredSheet?.id ?? this.documentModel.sheets[0].id
+        );
         this.emit('map-ready', true);
+    }
+
+    private async reloadFile(): Promise<void> {
+        const reloadButton = this.reloadButton;
+        if (!this.options.onReload || !reloadButton || this.destroyed) {
+            return;
+        }
+
+        reloadButton.disabled = true;
+        this.status.textContent = this.translator.t('viewerLoading');
+        try {
+            const activeSheetId = this.getActiveSheetId();
+            const file = await this.options.onReload();
+            if (this.isDestroyed()) {
+                return;
+            }
+            await this.openFile(file, { preferredSheetId: activeSheetId });
+        } finally {
+            reloadButton.disabled = false;
+        }
+    }
+
+    private isDestroyed(): boolean {
+        return this.destroyed;
     }
 
     private emitSheetsLoad(): void {
@@ -837,8 +916,8 @@ export class XMindRenderAdapter {
         this.centerTopicInViewport(nextMatch);
     }
 
-    private toggleSearch(): void {
-        this.isSearchVisible = !this.isSearchVisible;
+    private setSearchVisible(visible: boolean, focusInput: boolean): void {
+        this.isSearchVisible = visible;
         this.root.classList.toggle('has-search', this.isSearchVisible);
         this.searchPanel.hidden = !this.isSearchVisible;
         this.searchToggleButton.setAttribute(
@@ -852,6 +931,14 @@ export class XMindRenderAdapter {
                 this.searchInput.select();
             });
         }
+    }
+
+    private toggleSearch(): void {
+        this.setSearchVisible(!this.isSearchVisible, true);
+    }
+
+    private openSearchFromHotkey(): void {
+        this.setSearchVisible(true, true);
     }
 
     private toggleOutliner(): void {

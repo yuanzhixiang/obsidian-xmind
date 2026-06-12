@@ -162,15 +162,14 @@ export class XMindViewerView extends FileView {
                 this.contentEl.ownerDocument
             )
         );
-        const loadedFile = await loadLocalXMindFile(
-            await this.app.vault.readBinary(file)
-        );
+        const binary = await this.readXMindFile(file);
         this.viewer?.destroy();
         this.prepareContentEl();
         this.viewer = new XMindRenderAdapter({
             el: this.contentEl,
-            file: loadedFile.binary,
+            file: binary,
             onError: (error): void => this.showError(error),
+            onReload: (): Promise<ArrayBuffer> => this.reloadCurrentFile(),
             locale: this.translator.locale,
         });
     }
@@ -286,6 +285,21 @@ export class XMindViewerView extends FileView {
         return hasFullPathAdapter(adapter)
             ? adapter.getFullPath(file.path)
             : null;
+    }
+
+    private async readXMindFile(file: TFile): Promise<ArrayBuffer> {
+        const loadedFile = await loadLocalXMindFile(
+            await this.app.vault.readBinary(file)
+        );
+        return loadedFile.binary;
+    }
+
+    private async reloadCurrentFile(): Promise<ArrayBuffer> {
+        if (!this.file) {
+            throw new Error(this.translator.t('noFileOpen'));
+        }
+
+        return this.readXMindFile(this.file);
     }
 
     private prepareContentEl(): void {

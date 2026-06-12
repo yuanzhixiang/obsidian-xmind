@@ -15,9 +15,9 @@
 - embed 解析必须兼容 Obsidian 默认附件卡片结构：除了读取 embed 容器自身的 `src`、`data-src`、`data-path`、`href` 等属性，也要读取子级 `a.internal-link` / `a[href]` / `data-href` 等链接元素和文件名文本，避免 `.xmind` 附件只显示默认文件卡片。
 - embed 解析优先使用 `metadataCache.getFirstLinkpathDest(linkText, ctx.sourcePath)`，因此支持同目录相对链接、vault 内路径和 Obsidian 的链接解析规则；如果上下文路径不可用或 Obsidian 没有解析到文件，允许按 vault 内唯一 `.xmind` 文件名兜底匹配。
 - embed 渲染由 `XMindMarkdownEmbedRenderer` 继承 `MarkdownRenderChild` 管理生命周期，阅读视图重渲染、切换文件或删除 embed DOM 时必须销毁对应 `XMindRenderAdapter`。
-- 原生 embed registry 渲染由 `XMindEmbedComponent` 管理生命周期；Obsidian 调用 `loadFile()` 时读取 `.xmind` 二进制并挂载同一套 `XMindRenderAdapter`。
+- 原生 embed registry 渲染由 `XMindEmbedComponent` 管理生命周期；Obsidian 调用 `loadFile()` 时读取 `.xmind` 二进制并挂载同一套 `XMindRenderAdapter`。嵌入 viewer 的刷新按钮通过 `onReload` 重新读取对应 vault 文件，不写回源文件。
 - 原生 embed registry 挂载时需要清理紧挨 embed 容器的纯 `]` / `]]` 文本节点；这是 Obsidian 解析自定义扩展 embed 时可能留下的残余括号，不能显示在 viewer 下方。
-- Live Preview embed 由 `XMindLivePreviewEmbedWidget` 管理生命周期；CodeMirror 销毁 widget 时必须销毁对应 `XMindRenderAdapter`。
+- Live Preview embed 由 `XMindLivePreviewEmbedWidget` 管理生命周期；CodeMirror 销毁 widget 时必须销毁对应 `XMindRenderAdapter`。Live Preview embed 的刷新按钮同样只重新读取并渲染当前链接文件。
 - embed 使用 `app.vault.readBinary(file)` 读取 `.xmind` 二进制，并复用 `loadLocalXMindFile()` 与 `XMindRenderAdapter`，不加载远程 iframe，也不把 `.xmind` 当 Markdown 文本打开。
 - embed 是只读 viewer，不提供编辑或保存入口，不创建 `.bak` 备份，也不调用 vault 写入 API。
 - 插件不再维护 iframe、Blob URL 或本地 viewer 资产回收逻辑。

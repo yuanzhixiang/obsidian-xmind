@@ -79,6 +79,7 @@ Embedded maps use the same read-only viewer as opened files. XMind Maps does not
 - `-` and `+`: zoom out or zoom in.
 - Zoom percentage: shows the current zoom level.
 - `Fit canvas`: fit the whole map into the current pane.
+- `Refresh`: reload the current `.xmind` file after it changes on disk.
 - `Search`: open the search panel for the current sheet.
 - `Outliner`: switch to the full-page hierarchy view.
 - Sheet tabs: switch between sheets when the XMind file contains more than one sheet.
@@ -101,6 +102,7 @@ Branches that were collapsed in XMind open collapsed in XMind Maps, and expanded
 
 Use `Search` to find content in the current sheet. Search covers topic titles, labels, notes, and links.
 
+- Press `Command` + `F` on macOS, or `Ctrl` + `F` on Windows/Linux, while focus is inside the XMind viewer to open search.
 - Press `Enter` to jump to the next match.
 - Press `Shift` + `Enter` to jump to the previous match.
 - If a match is inside a folded branch, XMind Maps temporarily opens the needed ancestor branches in the current viewing session so the result is visible.

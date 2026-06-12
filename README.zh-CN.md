@@ -79,6 +79,7 @@ Obsidian 会用 XMind Maps 的视图打开文件，而不是把它当作 Markdow
 - `-` 和 `+`：缩小或放大。
 - 缩放百分比：显示当前缩放比例。
 - `适配画布`：把整张思维导图适配到当前面板。
+- `刷新`：当 `.xmind` 文件在外部更新后，重新读取并渲染当前文件。
 - `搜索`：打开当前 sheet 的搜索面板。
 - `大纲`：切换到整页层级大纲视图。
 - Sheet 标签：当 XMind 文件包含多个 sheet 时，用来切换 sheet。
@@ -101,6 +102,7 @@ Obsidian 会用 XMind Maps 的视图打开文件，而不是把它当作 Markdow
 
 使用 `搜索` 可以查找当前 sheet 中的内容。搜索范围包括主题标题、标签、备注和链接。
 
+- 焦点在 XMind viewer 内时，按 macOS 的 `Command` + `F`，或 Windows/Linux 的 `Ctrl` + `F`，可以打开搜索。
 - 按 `Enter` 跳到下一个结果。
 - 按 `Shift` + `Enter` 跳到上一个结果。
 - 如果搜索结果在已折叠分支里，XMind Maps 会在当前查看会话中临时展开必要的上级分支，让结果真实可见。
